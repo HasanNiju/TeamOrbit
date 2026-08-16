@@ -27,7 +27,9 @@
     "closedAfterDetail": "রিপোর্ট জমা আবার শুরু হবে আগামীকাল সকাল ৮:০০ টায়।",
     "fields": {
       "name": "নাম",
+      "namePlaceholder": "যার তথ্য দিচ্ছেন তার নাম লিখুন",
       "designation": "পদবী",
+      "designationPlaceholder": "যার তথ্য দিচ্ছেন তার পদবী লিখুন",
       "address": "ঠিকানা",
       "addressPlaceholder": "সম্পূর্ণ ঠিকানা লিখুন",
       "mobile": "মোবাইল নম্বর",

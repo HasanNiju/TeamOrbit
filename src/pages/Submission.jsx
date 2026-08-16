@@ -8,18 +8,17 @@ import Field from "../components/Field";
 import Button from "../components/Button";
 import Toast from "../components/Toast";
 
-const EMPTY_REPORT_FIELDS = { address: "", mobile: "", remarks: "" };
+const EMPTY_REPORT_FIELDS = { name: "", designation: "", address: "", mobile: "", remarks: "" };
 
 export default function Submission() {
   const { t, language } = useLanguage();
-  const { session, profile, refreshProfile } = useAuth();
+  const { session, refreshProfile } = useAuth();
 
   const [windowState, setWindowState] = useState(() => getSubmissionWindowState());
-  const [values, setValues] = useState({ name: "", designation: "", ...EMPTY_REPORT_FIELDS });
+  const [values, setValues] = useState({ ...EMPTY_REPORT_FIELDS });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
-  const [prefilled, setPrefilled] = useState(false);
 
   // Re-check the window every 30s so the form locks/unlocks live at 8AM/8PM
   // without the employee needing to reload.
@@ -27,14 +26,6 @@ export default function Submission() {
     const interval = setInterval(() => setWindowState(getSubmissionWindowState()), 30000);
     return () => clearInterval(interval);
   }, []);
-
-  // Pre-fill name/designation from the profile once it's loaded.
-  useEffect(() => {
-    if (profile && !prefilled) {
-      setValues((v) => ({ ...v, name: profile.name, designation: profile.designation || "" }));
-      setPrefilled(true);
-    }
-  }, [profile, prefilled]);
 
   const dateLabel = useMemo(() => formatDhakaDate(language, new Date()), [language]);
   const isOpen = windowState === "open";
@@ -112,6 +103,7 @@ export default function Submission() {
             value={values.name}
             onChange={(v) => setField("name", v)}
             error={errors.name}
+            placeholder={t("submission.fields.namePlaceholder")}
           />
           <Field
             id="designation"
@@ -119,6 +111,7 @@ export default function Submission() {
             value={values.designation}
             onChange={(v) => setField("designation", v)}
             error={errors.designation}
+            placeholder={t("submission.fields.designationPlaceholder")}
           />
           <Field
             id="address"

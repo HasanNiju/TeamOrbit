@@ -27,7 +27,9 @@
     "closedAfterDetail": "Submissions reopen tomorrow at 8:00 AM.",
     "fields": {
       "name": "Name",
+      "namePlaceholder": "Enter the person's name",
       "designation": "Designation",
+      "designationPlaceholder": "Enter the person's designation",
       "address": "Address",
       "addressPlaceholder": "Enter full address",
       "mobile": "Mobile Number",
@@ -36,8 +38,8 @@
       "remarksPlaceholder": "Write about today's work, experience, or anything important..."
     },
     "errors": {
-      "name": "Please enter your name.",
-      "designation": "Please enter your designation.",
+      "name": "Please enter the name.",
+      "designation": "Please enter the designation.",
       "address": "Please enter your address.",
       "mobile": "This mobile number isn't valid.",
       "remarks": "Please enter your remarks.",
