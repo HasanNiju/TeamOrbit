@@ -1,0 +1,92 @@
+{
+  "appName": "Report App",
+  "nav": {
+    "submission": "Submit",
+    "stats": "Stats",
+    "profile": "Profile"
+  },
+  "login": {
+    "subtitle": "Marketing Officer Login",
+    "employeeId": "Employee ID",
+    "employeeIdPlaceholder": "e.g. EMP-001",
+    "password": "Password",
+    "passwordPlaceholder": "Enter password",
+    "submit": "Log in",
+    "loading": "Logging in...",
+    "errorRequired": "Please enter your ID and password.",
+    "errorInvalid": "Employee ID or password is incorrect.",
+    "errorInactive": "Your account has been deactivated. Please contact your Team Leader."
+  },
+  "submission": {
+    "greeting": "Today's Report",
+    "windowLabel": "Submission window",
+    "windowValue": "8:00 AM — 8:00 PM",
+    "closedBefore": "Report submission hasn't started yet.",
+    "closedBeforeDetail": "Today's submissions open at 8:00 AM.",
+    "closedAfter": "Today's submission window has closed.",
+    "closedAfterDetail": "Submissions reopen tomorrow at 8:00 AM.",
+    "fields": {
+      "name": "Name",
+      "designation": "Designation",
+      "address": "Address",
+      "addressPlaceholder": "Enter full address",
+      "mobile": "Mobile Number",
+      "mobilePlaceholder": "01XXXXXXXXX",
+      "remarks": "Opinion / Remarks",
+      "remarksPlaceholder": "Write about today's work, experience, or anything important..."
+    },
+    "errors": {
+      "name": "Please enter your name.",
+      "designation": "Please enter your designation.",
+      "address": "Please enter your address.",
+      "mobile": "This mobile number isn't valid.",
+      "remarks": "Please enter your remarks.",
+      "closed": "Submissions aren't open right now.",
+      "network": "No internet connection. Please try again.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "submit": "Submit Report",
+    "submitting": "Submitting...",
+    "success": "Report submitted successfully.",
+    "submitAnother": "You can submit another report."
+  },
+  "stats": {
+    "title": "Stats",
+    "today": "Today",
+    "week": "This Week",
+    "month": "This Month",
+    "total": "Total",
+    "unit": "reports",
+    "rankLabel": "Your rank",
+    "rankValue": "#{rank}",
+    "rankOutOf": "out of {total}"
+  },
+  "profile": {
+    "title": "Profile",
+    "name": "Name",
+    "employeeId": "Employee ID",
+    "designation": "Designation",
+    "zone": "Zone",
+    "mobile": "Mobile Number",
+    "address": "Address",
+    "totalSubmissions": "Total Submissions",
+    "rank": "Rank",
+    "teamLeader": "Team Leader",
+    "manager": "Manager",
+    "language": "Language",
+    "bangla": "বাংলা",
+    "english": "English",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saved": "Profile updated.",
+    "logout": "Log out",
+    "changePhoto": "Change photo",
+    "photoTypeError": "Only JPEG, PNG, or WebP images are allowed.",
+    "photoSizeError": "Photo must be smaller than 5MB."
+  },
+  "common": {
+    "retry": "Retry",
+    "loading": "Loading..."
+  }
+}

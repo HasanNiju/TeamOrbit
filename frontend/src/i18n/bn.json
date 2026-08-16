@@ -1,0 +1,92 @@
+{
+  "appName": "রিপোর্ট অ্যাপ",
+  "nav": {
+    "submission": "জমা দিন",
+    "stats": "পরিসংখ্যান",
+    "profile": "প্রোফাইল"
+  },
+  "login": {
+    "subtitle": "মার্কেটিং অফিসার লগইন",
+    "employeeId": "কর্মচারী আইডি",
+    "employeeIdPlaceholder": "যেমন EMP-001",
+    "password": "পাসওয়ার্ড",
+    "passwordPlaceholder": "পাসওয়ার্ড লিখুন",
+    "submit": "লগইন করুন",
+    "loading": "লগইন হচ্ছে...",
+    "errorRequired": "অনুগ্রহ করে আইডি ও পাসওয়ার্ড লিখুন।",
+    "errorInvalid": "আইডি অথবা পাসওয়ার্ড সঠিক নয়।",
+    "errorInactive": "আপনার অ্যাকাউন্টটি নিষ্ক্রিয় করা হয়েছে। অনুগ্রহ করে টিম লিডারের সাথে যোগাযোগ করুন।"
+  },
+  "submission": {
+    "greeting": "আজকের রিপোর্ট",
+    "windowLabel": "রিপোর্ট জমা দেওয়ার সময়",
+    "windowValue": "সকাল ৮:০০ — রাত ৮:০০",
+    "closedBefore": "রিপোর্ট জমা এখনো শুরু হয়নি।",
+    "closedBeforeDetail": "আজকের রিপোর্ট জমা শুরু হবে সকাল ৮:০০ টায়।",
+    "closedAfter": "আজকের রিপোর্ট জমা দেওয়ার সময় শেষ।",
+    "closedAfterDetail": "রিপোর্ট জমা আবার শুরু হবে আগামীকাল সকাল ৮:০০ টায়।",
+    "fields": {
+      "name": "নাম",
+      "designation": "পদবী",
+      "address": "ঠিকানা",
+      "addressPlaceholder": "সম্পূর্ণ ঠিকানা লিখুন",
+      "mobile": "মোবাইল নম্বর",
+      "mobilePlaceholder": "০১XXXXXXXXX",
+      "remarks": "মতামত / মন্তব্য",
+      "remarksPlaceholder": "আজকের কাজ, অভিজ্ঞতা বা গুরুত্বপূর্ণ বিষয় লিখুন..."
+    },
+    "errors": {
+      "name": "অনুগ্রহ করে নাম লিখুন।",
+      "designation": "অনুগ্রহ করে পদবী লিখুন।",
+      "address": "অনুগ্রহ করে ঠিকানা লিখুন।",
+      "mobile": "মোবাইল নম্বরটি সঠিক নয়।",
+      "remarks": "অনুগ্রহ করে মতামত লিখুন।",
+      "closed": "এই মুহূর্তে রিপোর্ট জমা দেওয়ার সময় নয়।",
+      "network": "ইন্টারনেট সংযোগ পাওয়া যাচ্ছে না। আবার চেষ্টা করুন।",
+      "generic": "কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।"
+    },
+    "submit": "রিপোর্ট জমা দিন",
+    "submitting": "জমা হচ্ছে...",
+    "success": "রিপোর্ট সফলভাবে জমা হয়েছে।",
+    "submitAnother": "আরেকটি রিপোর্ট জমা দিতে পারেন।"
+  },
+  "stats": {
+    "title": "পরিসংখ্যান",
+    "today": "আজ",
+    "week": "এই সপ্তাহ",
+    "month": "এই মাস",
+    "total": "মোট",
+    "unit": "রিপোর্ট",
+    "rankLabel": "আপনার র‍্যাংক",
+    "rankValue": "#{rank}",
+    "rankOutOf": "{total} জনের মধ্যে"
+  },
+  "profile": {
+    "title": "প্রোফাইল",
+    "name": "নাম",
+    "employeeId": "কর্মচারী আইডি",
+    "designation": "পদবী",
+    "zone": "জোন",
+    "mobile": "মোবাইল নম্বর",
+    "address": "ঠিকানা",
+    "totalSubmissions": "মোট জমা",
+    "rank": "র‍্যাংক",
+    "teamLeader": "টিম লিডার",
+    "manager": "ম্যানেজার",
+    "language": "ভাষা",
+    "bangla": "বাংলা",
+    "english": "English",
+    "edit": "সম্পাদনা করুন",
+    "save": "সংরক্ষণ করুন",
+    "cancel": "বাতিল করুন",
+    "saved": "প্রোফাইল আপডেট হয়েছে।",
+    "logout": "লগআউট",
+    "changePhoto": "ছবি পরিবর্তন করুন",
+    "photoTypeError": "শুধুমাত্র JPEG, PNG অথবা WebP ছবি গ্রহণযোগ্য।",
+    "photoSizeError": "ছবির আকার ৫ মেগাবাইটের কম হতে হবে।"
+  },
+  "common": {
+    "retry": "আবার চেষ্টা করুন",
+    "loading": "লোড হচ্ছে..."
+  }
+}

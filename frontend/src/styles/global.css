@@ -1,0 +1,594 @@
+/* ==========================================================================
+   Design tokens
+   Palette grounded in the subject: a field-reporting app used outdoors,
+   on modest phones, by people who are not power users. Deep teal reads as
+   trustworthy/institutional without being a literal flag-green; warm amber
+   is reserved for the one "achievement" moment (rank).
+   ========================================================================== */
+:root {
+  --color-primary: #0f5c4c;
+  --color-primary-dark: #0b4a3d;
+  --color-primary-tint: #e4f1ec;
+  --color-accent: #d98e32;
+  --color-accent-tint: #faf0e0;
+
+  --color-bg: #f5f7f6;
+  --color-surface: #ffffff;
+  --color-border: #e1e6e4;
+  --color-text: #1c2321;
+  --color-text-muted: #5b6663;
+
+  --color-error: #c1443d;
+  --color-error-tint: #fbebea;
+  --color-success: #0f5c4c;
+
+  --font-bangla: "Hind Siliguri", "Noto Sans Bengali", sans-serif;
+  --font-latin: "Work Sans", sans-serif;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+
+  --shadow-sm: 0 1px 3px rgba(28, 35, 33, 0.08);
+  --shadow-md: 0 4px 16px rgba(28, 35, 33, 0.1);
+
+  --nav-height: 72px;
+  --header-height: 56px;
+
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-bangla);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.lang-en {
+  font-family: var(--font-latin);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Visible focus ring everywhere; never suppressed */
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   App shell
+   ========================================================================== */
+.app-shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  min-height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-header__title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.page {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 20px calc(var(--nav-height) + var(--safe-bottom) + 24px);
+}
+
+/* Desktop/tablet: keep the same three-section IA, widen the canvas a bit
+   and let the bottom nav become a top tab bar instead of a fixed dock. */
+@media (min-width: 768px) {
+  .page {
+    max-width: 640px;
+    padding-bottom: 40px;
+  }
+
+  .bottom-nav {
+    position: sticky;
+    bottom: auto;
+    top: 0;
+    border-top: none;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0;
+  }
+
+  .app-shell--with-nav .page {
+    padding-bottom: 40px;
+  }
+}
+
+/* ==========================================================================
+   Bottom navigation
+   ========================================================================== */
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding-bottom: var(--safe-bottom);
+}
+
+.bottom-nav__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 4px 8px;
+  min-height: 64px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.bottom-nav__icon {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.bottom-nav__item[aria-current="page"] {
+  color: var(--color-primary);
+}
+
+.bottom-nav__item[aria-current="page"] .bottom-nav__icon {
+  background: var(--color-primary-tint);
+}
+
+/* ==========================================================================
+   Cards, forms, buttons
+   ========================================================================== */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.card + .card {
+  margin-top: 16px;
+}
+
+.field {
+  margin-bottom: 18px;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field__label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+
+.field__input,
+.field__textarea {
+  width: 100%;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  padding: 14px 16px;
+  font-size: 16px;
+  color: var(--color-text);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.field__input:focus,
+.field__textarea:focus {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.field__textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.field__error {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--color-error);
+  font-weight: 500;
+}
+
+.field__input--error,
+.field__textarea--error {
+  border-color: var(--color-error);
+  background: var(--color-error-tint);
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  transition: opacity 0.15s ease, transform 0.05s ease;
+}
+
+.btn:active {
+  transform: scale(0.99);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.btn--secondary {
+  background: var(--color-primary-tint);
+  color: var(--color-primary-dark);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   Banners / states
+   ========================================================================== */
+.banner {
+  border-radius: var(--radius-md);
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.banner--info {
+  background: var(--color-primary-tint);
+  color: var(--color-primary-dark);
+}
+
+.banner--warning {
+  background: var(--color-accent-tint);
+  color: #8a5a12;
+}
+
+.banner--error {
+  background: var(--color-error-tint);
+  color: var(--color-error);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
+  transform: translateX(-50%);
+  z-index: 50;
+  max-width: 90vw;
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+
+.toast--success {
+  background: var(--color-primary-dark);
+  color: #ffffff;
+}
+
+.toast--error {
+  background: var(--color-error);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Stats
+   ========================================================================== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  text-align: center;
+}
+
+.stat-card__label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.stat-card__value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin: 6px 0 2px;
+  font-family: var(--font-latin);
+}
+
+.stat-card__unit {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* Rank badge — the one signature element. Rank is a genuine ordering, so a
+   numbered badge is earning its place rather than decorating. */
+.rank-badge {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  color: #ffffff;
+}
+
+.rank-badge__circle {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: #3a2506;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--font-latin);
+}
+
+.rank-badge__label {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.rank-badge__value {
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   Profile
+   ========================================================================== */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 700;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+  gap: 12px;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row__label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.info-row__value {
+  font-size: 15px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.lang-toggle {
+  display: flex;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 4px;
+  gap: 4px;
+}
+
+.lang-toggle__option {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 12px;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.lang-toggle__option[aria-pressed="true"] {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Login
+   ========================================================================== */
+.login-page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 32px 24px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.login-brand {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.login-brand__mark {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.login-brand__title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.login-brand__subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+/* ==========================================================================
+   Submission page date/time header
+   ========================================================================== */
+.submission-header {
+  margin-bottom: 20px;
+}
+
+.submission-header__greeting {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.submission-header__date {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.submission-header__window {
+  font-size: 13px;
+  color: var(--color-primary-dark);
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
