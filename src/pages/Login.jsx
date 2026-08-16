@@ -41,7 +41,7 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-brand">
-        <div className="login-brand__mark">রি</div>
+        <div className="login-brand__mark">TO</div>
         <h1 className="login-brand__title">{t("appName")}</h1>
         <p className="login-brand__subtitle">{t("login.subtitle")}</p>
       </div>
