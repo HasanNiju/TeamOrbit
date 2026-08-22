@@ -237,28 +237,6 @@ button {
   padding: 20px 20px calc(var(--nav-height) + var(--safe-bottom) + 24px);
 }
 
-/* Desktop/tablet: keep the same three-section IA, widen the canvas a bit
-   and let the bottom nav become a top tab bar instead of a fixed dock. */
-@media (min-width: 768px) {
-  .page {
-    max-width: 640px;
-    padding-bottom: 40px;
-  }
-
-  .bottom-nav {
-    position: sticky;
-    bottom: auto;
-    top: 0;
-    border-top: none;
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: 0;
-  }
-
-  .app-shell--with-nav .page {
-    padding-bottom: 40px;
-  }
-}
-
 /* ==========================================================================
    Bottom navigation
    ========================================================================== */
@@ -307,6 +285,79 @@ button {
 .bottom-nav__item[aria-current="page"] .bottom-nav__icon {
   background: var(--color-primary-tint);
 }
+
+/* --------------------------------------------------------------------------
+   Desktop/PC — separate layout for the employee app (submission/stats/
+   profile) too, not just the login screen.
+   The nav is the LAST element in the DOM (Header, then page, then nav) so
+   it can sit fixed at the bottom of the screen on mobile. On desktop we
+   turn it into a proper top tab bar instead of a bottom dock: flexbox
+   `order` moves it visually between the header and the page content
+   without needing `position: fixed`/`sticky` tricks (which is what
+   previously made it render as a full-viewport-height overlay here).
+   This block must come AFTER the base .page/.bottom-nav rules above so it
+   correctly overrides them — a rule's position in the stylesheet, not just
+   its selector, decides which one wins when both match.
+   -------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+  .page {
+    max-width: 720px;
+    padding: 32px 32px 40px;
+  }
+
+  .app-shell--with-nav {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .app-shell--with-nav .app-header {
+    order: 0;
+  }
+
+  .app-shell--with-nav .bottom-nav {
+    order: 1;
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    justify-content: center;
+    gap: 8px;
+    border-top: none;
+    border-bottom: 1px solid var(--color-border);
+    padding: 0 24px;
+  }
+
+  .app-shell--with-nav .page {
+    order: 2;
+  }
+
+  .app-shell--with-nav .bottom-nav__item {
+    flex: none;
+    flex-direction: row;
+    min-height: auto;
+    padding: 16px 20px;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+  }
+
+  .app-shell--with-nav .bottom-nav__item:hover {
+    color: var(--color-primary-dark);
+  }
+
+  .app-shell--with-nav .bottom-nav__item[aria-current="page"] {
+    border-bottom-color: var(--color-primary);
+  }
+
+  .app-shell--with-nav .bottom-nav__item[aria-current="page"] .bottom-nav__icon {
+    background: none;
+  }
+
+  .app-shell--with-nav .bottom-nav__icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 
 /* ==========================================================================
    Cards, forms, buttons
