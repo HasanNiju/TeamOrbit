@@ -6,7 +6,7 @@ const { serializeUser } = require("../utils/serialize");
 const { verifyPassword } = require("../services/authService");
 
 const getAccount = asyncHandler(async (req, res) => {
-  return ok(res, { user: serializeUser(req.user) });
+  return ok(res, { user: await serializeUser(req.user) });
 });
 
 const updateAccount = asyncHandler(async (req, res) => {
@@ -18,8 +18,8 @@ const updateAccount = asyncHandler(async (req, res) => {
     patch.name = req.body.name;
     patch.name_en = req.body.name;
   }
-  const updated = store.updateUser(req.user.id, patch);
-  return ok(res, { user: serializeUser(updated) });
+  const updated = await store.updateUser(req.user.id, patch);
+  return ok(res, { user: await serializeUser(updated) });
 });
 
 const changePassword = asyncHandler(async (req, res, next) => {
@@ -29,8 +29,8 @@ const changePassword = asyncHandler(async (req, res, next) => {
   if (!verifyPassword(currentPassword, req.user.password_hash)) {
     return next(fail(401, "INVALID_CREDENTIALS", "Current password is incorrect."));
   }
-  store.updateUser(req.user.id, { password_hash: bcrypt.hashSync(newPassword, 10) });
-  store.addAuditLog({ actor: req.user, action: "User changed their own password", target: { id: req.user.id, label: req.user.employee_id } });
+  await store.updateUser(req.user.id, { password_hash: bcrypt.hashSync(newPassword, 10) });
+  await store.addAuditLog({ actor: req.user, action: "User changed their own password", target: { id: req.user.id, label: req.user.employee_id } });
   return ok(res, { changed: true });
 });
 

@@ -1,9 +1,9 @@
 const store = require("../data/store");
 
-function serializeUser(user) {
+async function serializeUser(user) {
   if (!user) return null;
-  const teamLeader = user.team_leader_id ? store.findUserById(user.team_leader_id) : null;
-  const manager = user.manager_id ? store.findUserById(user.manager_id) : null;
+  const teamLeader = user.team_leader_id ? await store.findUserById(user.team_leader_id) : null;
+  const manager = user.manager_id ? await store.findUserById(user.manager_id) : null;
 
   return {
     id: user.id,
@@ -26,22 +26,27 @@ function serializeUser(user) {
   };
 }
 
-function serializeEmployeeListItem(user) {
-  const teamLeader = user.team_leader_id ? store.findUserById(user.team_leader_id) : null;
+async function serializeEmployeeListItem(user) {
+  const teamLeader = user.team_leader_id ? await store.findUserById(user.team_leader_id) : null;
+  const totalSubmissions = await store.getEmployeeTotal(user.id);
   return {
     id: user.id,
     employeeId: user.employee_id,
     name: user.name_en,
     zone: user.zone,
+    role: user.role,
+    designation: user.designation,
+    mobile: user.mobile,
     teamLeader: teamLeader ? teamLeader.name_en : null,
     teamLeaderId: user.team_leader_id,
+    managerId: user.manager_id,
     status: user.status,
-    totalSubmissions: store.getEmployeeTotal(user.id),
+    totalSubmissions,
   };
 }
 
-function serializeSubmission(s) {
-  const employee = store.findUserById(s.employee_user_id);
+async function serializeSubmission(s) {
+  const employee = await store.findUserById(s.employee_user_id);
   return {
     id: s.id,
     employeeId: s.employee_id,

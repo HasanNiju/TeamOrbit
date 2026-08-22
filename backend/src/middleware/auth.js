@@ -10,23 +10,27 @@ function extractToken(req) {
   return null;
 }
 
-function requireAuth(req, res, next) {
-  const token = extractToken(req);
-  if (!token) return next(fail(401, "UNAUTHENTICATED", "Login required."));
-
-  let payload;
+async function requireAuth(req, res, next) {
   try {
-    payload = verifyToken(token);
-  } catch {
-    return next(fail(401, "INVALID_TOKEN", "Session expired or invalid. Please log in again."));
+    const token = extractToken(req);
+    if (!token) return next(fail(401, "UNAUTHENTICATED", "Login required."));
+
+    let payload;
+    try {
+      payload = verifyToken(token);
+    } catch {
+      return next(fail(401, "INVALID_TOKEN", "Session expired or invalid. Please log in again."));
+    }
+
+    const user = await findUserById(payload.sub);
+    if (!user) return next(fail(401, "INVALID_TOKEN", "Account not found."));
+    if (user.status !== "active") return next(fail(403, "INACTIVE_ACCOUNT", "This account has been deactivated."));
+
+    req.user = user;
+    next();
+  } catch (err) {
+    next(err);
   }
-
-  const user = findUserById(payload.sub);
-  if (!user) return next(fail(401, "INVALID_TOKEN", "Account not found."));
-  if (user.status !== "active") return next(fail(403, "INACTIVE_ACCOUNT", "This account has been deactivated."));
-
-  req.user = user;
-  next();
 }
 
 /** Restricts a route to one or more roles, e.g. requireRole("ADMIN", "SUPER_ADMIN"). */

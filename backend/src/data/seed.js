@@ -1,14 +1,15 @@
 // ---------------------------------------------------------------------------
-// Seeds realistic dummy data so every screen (employee app + admin panel)
-// has something meaningful to show before Supabase/Postgres is connected.
-// Mirrors the seed used in the frontend's mock API so EMP-001 / demo123
-// behaves the same in both places.
+// Seeds realistic demo data into Supabase so every screen (employee app +
+// admin dashboard) has something meaningful to show. Safe to run more than
+// once — it skips seeding if any users already exist in the database.
+//
+// Run with: cd backend && npm run seed   (after setting SUPABASE_URL /
+// SUPABASE_SERVICE_ROLE_KEY in backend/.env)
 // ---------------------------------------------------------------------------
 
 const store = require("./store");
+const { getDhakaDateKey: dhakaDateKeyOf } = require("../utils/dhakaTime");
 const { ROLES } = store;
-
-const ZONES = ["Dhaka North", "Dhaka South", "Chattogram", "Sylhet", "Khulna"];
 
 function randomBetween(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -25,13 +26,23 @@ function randomSubmittedAt(daysAgo) {
   return d;
 }
 
-function seedSubmissionsFor(employeeUser, { days, minPerDay, maxPerDay, skipRatio = 0.25 }) {
+const SAMPLE_OPINIONS = [
+  "Visited 12 retail outlets today, distributed promotional materials and collected feedback on the new product line.",
+  "Met with 5 potential clients in the assigned zone; two showed strong interest in the seasonal package.",
+  "Followed up on last week's leads, resolved two complaints, and updated shop owners on the upcoming price list.",
+  "Conducted a market survey in the local bazaar to understand competitor pricing and customer preferences.",
+  "Attended a team briefing in the morning, then covered the northern part of the zone for field visits.",
+  "Distributed samples to 8 shops and recorded initial reactions for the weekly report.",
+];
+
+function buildSubmissionRows(employeeUser, { days, minPerDay, maxPerDay, skipRatio = 0.25 }) {
+  const rows = [];
   for (let daysAgo = days; daysAgo >= 1; daysAgo -= 1) {
     if (Math.random() < skipRatio) continue; // some days have no reports, like real usage
     const count = randomBetween(minPerDay, maxPerDay);
     for (let i = 0; i < count; i += 1) {
       const submittedAt = randomSubmittedAt(daysAgo);
-      const record = {
+      rows.push({
         id: store.genId("sub"),
         employee_user_id: employeeUser.id,
         employee_id: employeeUser.employee_id,
@@ -44,30 +55,23 @@ function seedSubmissionsFor(employeeUser, { days, minPerDay, maxPerDay, skipRati
         submitted_at: submittedAt.toISOString(),
         created_at: submittedAt.toISOString(),
         updated_at: submittedAt.toISOString(),
-      };
-      store.submissions.push(record);
+      });
     }
   }
+  return rows;
 }
 
-const { getDhakaDateKey: dhakaDateKeyOf } = require("../utils/dhakaTime");
-
-const SAMPLE_OPINIONS = [
-  "Visited 12 retail outlets today, distributed promotional materials and collected feedback on the new product line.",
-  "Met with 5 potential clients in the assigned zone; two showed strong interest in the seasonal package.",
-  "Followed up on last week's leads, resolved two complaints, and updated shop owners on the upcoming price list.",
-  "Conducted a market survey in the local bazaar to understand competitor pricing and customer preferences.",
-  "Attended a team briefing in the morning, then covered the northern part of the zone for field visits.",
-  "Distributed samples to 8 shops and recorded initial reactions for the weekly report.",
-];
-
-function seed() {
-  if (store.users.length > 0) return; // already seeded (e.g. hot reload)
+async function seed() {
+  const existing = await store.listAllUsers();
+  if (existing.length > 0) {
+    console.log(`[seed] ${existing.length} users already in Supabase — skipping seed.`);
+    return;
+  }
 
   // --- Super Admin / Manager -------------------------------------------------
   const superAdminId = process.env.BOOTSTRAP_SUPER_ADMIN_ID || "SA-001";
   const superAdminPassword = process.env.BOOTSTRAP_SUPER_ADMIN_PASSWORD || "admin123";
-  const nasrin = store.createUser({
+  const nasrin = await store.createUser({
     employeeId: superAdminId,
     name: "Nasrin Sultana",
     nameEn: "Nasrin Sultana",
@@ -80,7 +84,7 @@ function seed() {
     status: "active",
   });
 
-  const rafiq = store.createUser({
+  const rafiq = await store.createUser({
     employeeId: "SA-002",
     name: "Rafiqul Islam",
     nameEn: "Rafiqul Islam",
@@ -94,7 +98,7 @@ function seed() {
   });
 
   // --- Team Leaders / Admins --------------------------------------------------
-  const kamal = store.createUser({
+  const kamal = await store.createUser({
     employeeId: "TL-001",
     name: "Kamal Hossain",
     nameEn: "Kamal Hossain",
@@ -108,7 +112,7 @@ function seed() {
     status: "active",
   });
 
-  const shirin = store.createUser({
+  const shirin = await store.createUser({
     employeeId: "TL-002",
     name: "Shirin Akter",
     nameEn: "Shirin Akter",
@@ -122,7 +126,7 @@ function seed() {
     status: "active",
   });
 
-  const jahid = store.createUser({
+  const jahid = await store.createUser({
     employeeId: "TL-003",
     name: "Jahidul Karim",
     nameEn: "Jahidul Karim",
@@ -148,8 +152,9 @@ function seed() {
     { employeeId: "EMP-008", name: "সোহেল রানা", nameEn: "Sohel Rana", teamLeader: jahid, mobile: "01718888888", address: "Ambarkhana, Sylhet", zone: "Sylhet", status: "inactive" },
   ];
 
+  let totalSubmissions = 0;
   for (const e of employeeSeeds) {
-    const user = store.createUser({
+    const user = await store.createUser({
       employeeId: e.employeeId,
       name: e.name,
       nameEn: e.nameEn,
@@ -166,11 +171,13 @@ function seed() {
     });
 
     if (user.status === "active") {
-      seedSubmissionsFor(user, { days: 45, minPerDay: 1, maxPerDay: 5, skipRatio: 0.22 });
+      const rows = buildSubmissionRows(user, { days: 45, minPerDay: 1, maxPerDay: 5, skipRatio: 0.22 });
+      await store.bulkCreateSubmissions(rows);
+      totalSubmissions += rows.length;
     }
   }
 
-  console.log(`[seed] ${store.users.length} users, ${store.submissions.length} submissions`);
+  console.log(`[seed] ${employeeSeeds.length + 5} users, ${totalSubmissions} submissions created in Supabase.`);
 }
 
 module.exports = { seed };

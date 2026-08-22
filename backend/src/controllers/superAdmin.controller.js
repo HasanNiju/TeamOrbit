@@ -13,11 +13,11 @@ function monthStart() { return `${getDhakaMonthKey(new Date())}-01`; }
 // --- Dashboard ---------------------------------------------------------------
 
 const getDashboard = asyncHandler(async (req, res) => {
-  const employees = store.users.filter((u) => u.role === store.ROLES.MARKETING_OFFICER);
-  const teamLeaders = store.users.filter((u) => u.role === store.ROLES.ADMIN);
-  const todayRows = store.queryAllSubmissions({ dateFrom: today(), dateTo: today() });
-  const weekRows = store.queryAllSubmissions({ dateFrom: weekStart() });
-  const monthRows = store.queryAllSubmissions({ dateFrom: monthStart() });
+  const employees = await store.listAllUsers({ role: store.ROLES.MARKETING_OFFICER });
+  const teamLeaders = await store.listAllUsers({ role: store.ROLES.ADMIN });
+  const todayRows = await store.queryAllSubmissions({ dateFrom: today(), dateTo: today() });
+  const weekRows = await store.queryAllSubmissions({ dateFrom: weekStart() });
+  const monthRows = await store.queryAllSubmissions({ dateFrom: monthStart() });
 
   return ok(res, {
     totalEmployees: employees.length,
@@ -40,11 +40,11 @@ const listAllSubmissions = asyncHandler(async (req, res) => {
   const { search, page, limit, sort, dateFrom, dateTo, employeeId, teamLeaderId } = parseListQuery(req);
   let employeeUserId = null;
   if (employeeId) {
-    const employee = store.findUserByEmployeeId(employeeId) || store.findUserById(employeeId);
+    const employee = (await store.findUserByEmployeeId(employeeId)) || (await store.findUserById(employeeId));
     if (employee) employeeUserId = employee.id;
   }
 
-  const { rows, pagination } = store.querySubmissions({
+  const { rows, pagination } = await store.querySubmissions({
     employeeUserId,
     teamLeaderId,
     search,
@@ -54,17 +54,17 @@ const listAllSubmissions = asyncHandler(async (req, res) => {
     page,
     limit,
   });
-  return ok(res, { submissions: rows.map(serializeSubmission), pagination });
+  return ok(res, { submissions: await Promise.all(rows.map(serializeSubmission)), pagination });
 });
 
 const exportAllSubmissions = asyncHandler(async (req, res) => {
   const { search, sort, dateFrom, dateTo, employeeId, teamLeaderId } = parseListQuery(req);
   let employeeUserId = null;
   if (employeeId) {
-    const employee = store.findUserByEmployeeId(employeeId) || store.findUserById(employeeId);
+    const employee = (await store.findUserByEmployeeId(employeeId)) || (await store.findUserById(employeeId));
     if (employee) employeeUserId = employee.id;
   }
-  const rows = store.queryAllSubmissions({
+  const rows = await store.queryAllSubmissions({
     employeeUserId,
     teamLeaderId,
     search,
@@ -78,16 +78,15 @@ const exportAllSubmissions = asyncHandler(async (req, res) => {
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   res.send(Buffer.from(buffer));
 
-  store.addAuditLog({ actor: req.user, action: "Super Admin exported reports", metadata: { filename, count: rows.length } });
+  await store.addAuditLog({ actor: req.user, action: "Super Admin exported reports", metadata: { filename, count: rows.length } });
 });
 
 // --- Users (Employees, Team Leaders, Admins) ---------------------------------------------------------------
 
 const listUsers = asyncHandler(async (req, res) => {
   const { role } = req.query;
-  let users = store.users;
-  if (role) users = users.filter((u) => u.role === role);
-  return ok(res, { users: users.map(serializeEmployeeListItem) });
+  const users = await store.listAllUsers({ role: role || null });
+  return ok(res, { users: await Promise.all(users.map(serializeEmployeeListItem)) });
 });
 
 const createUser = asyncHandler(async (req, res, next) => {
@@ -103,7 +102,7 @@ const createUser = asyncHandler(async (req, res, next) => {
   }
   if (problems.length) return next(fail(422, "VALIDATION_ERROR", problems.join(" ")));
 
-  if (store.findUserByEmployeeId(employeeId)) {
+  if (await store.findUserByEmployeeId(employeeId)) {
     return next(fail(409, "DUPLICATE_EMPLOYEE_ID", "This Employee ID is already in use."));
   }
 
@@ -111,7 +110,7 @@ const createUser = asyncHandler(async (req, res, next) => {
   let resolvedManagerId = req.user.id;
   if (role === "MARKETING_OFFICER") {
     if (teamLeaderId) {
-      const tl = store.findUserById(teamLeaderId);
+      const tl = await store.findUserById(teamLeaderId);
       if (!tl || tl.role !== store.ROLES.ADMIN) return next(fail(422, "INVALID_TEAM_LEADER", "Selected Team Leader is invalid."));
       resolvedTeamLeaderId = tl.id;
       resolvedManagerId = tl.manager_id;
@@ -120,7 +119,7 @@ const createUser = asyncHandler(async (req, res, next) => {
     resolvedManagerId = managerId || req.user.id;
   }
 
-  const user = store.createUser({
+  const user = await store.createUser({
     employeeId,
     name,
     nameEn: name,
@@ -136,17 +135,17 @@ const createUser = asyncHandler(async (req, res, next) => {
     status: "active",
   });
 
-  store.addAuditLog({
+  await store.addAuditLog({
     actor: req.user,
     action: role === "ADMIN" ? "Super Admin created Admin" : "Super Admin created employee",
     target: { id: user.id, label: user.employee_id },
   });
 
-  return ok(res, { user: serializeUser(user) }, 201);
+  return ok(res, { user: await serializeUser(user) }, 201);
 });
 
 const updateUserHandler = asyncHandler(async (req, res, next) => {
-  const target = store.findUserById(req.params.id);
+  const target = await store.findUserById(req.params.id);
   if (!target) return next(fail(404, "NOT_FOUND", "User not found."));
 
   const patch = {};
@@ -155,10 +154,10 @@ const updateUserHandler = asyncHandler(async (req, res, next) => {
   if (patch.name) patch.name_en = req.body.name;
 
   const before = { status: target.status };
-  const updated = store.updateUser(target.id, patch);
+  const updated = await store.updateUser(target.id, patch);
 
   if (patch.status && patch.status !== before.status) {
-    store.addAuditLog({
+    await store.addAuditLog({
       actor: req.user,
       action: "Super Admin changed user status",
       target: { id: target.id, label: target.employee_id },
@@ -166,51 +165,52 @@ const updateUserHandler = asyncHandler(async (req, res, next) => {
     });
   }
 
-  return ok(res, { user: serializeUser(updated) });
+  return ok(res, { user: await serializeUser(updated) });
 });
 
 const updateAssignments = asyncHandler(async (req, res, next) => {
   const { userId, teamLeaderId, managerId } = req.body || {};
-  const target = store.findUserById(userId);
+  const target = await store.findUserById(userId);
   if (!target) return next(fail(404, "NOT_FOUND", "User not found."));
 
   const patch = {};
   if (target.role === store.ROLES.MARKETING_OFFICER && teamLeaderId) {
-    const tl = store.findUserById(teamLeaderId);
+    const tl = await store.findUserById(teamLeaderId);
     if (!tl || tl.role !== store.ROLES.ADMIN) return next(fail(422, "INVALID_TEAM_LEADER", "Selected Team Leader is invalid."));
     patch.team_leader_id = tl.id;
     patch.manager_id = tl.manager_id;
   }
   if (target.role === store.ROLES.ADMIN && managerId) {
-    const mgr = store.findUserById(managerId);
+    const mgr = await store.findUserById(managerId);
     if (!mgr || mgr.role !== store.ROLES.SUPER_ADMIN) return next(fail(422, "INVALID_MANAGER", "Selected Manager is invalid."));
     patch.manager_id = mgr.id;
   }
 
-  const updated = store.updateUser(target.id, patch);
-  store.addAuditLog({
+  const updated = await store.updateUser(target.id, patch);
+  await store.addAuditLog({
     actor: req.user,
     action: "Super Admin changed employee assignment",
     target: { id: target.id, label: target.employee_id },
     metadata: patch,
   });
 
-  return ok(res, { user: serializeUser(updated) });
+  return ok(res, { user: await serializeUser(updated) });
 });
 
 const listTeamLeaders = asyncHandler(async (req, res) => {
-  const teamLeaders = store.users.filter((u) => u.role === store.ROLES.ADMIN);
-  return ok(res, {
-    teamLeaders: teamLeaders.map((tl) => ({
+  const teamLeaders = await store.listAllUsers({ role: store.ROLES.ADMIN });
+  const withCounts = await Promise.all(
+    teamLeaders.map(async (tl) => ({
       id: tl.id,
       employeeId: tl.employee_id,
       name: tl.name_en,
       zone: tl.zone,
       status: tl.status,
       managerId: tl.manager_id,
-      employeeCount: store.listEmployees({ teamLeaderId: tl.id }).length,
-    })),
-  });
+      employeeCount: (await store.listEmployees({ teamLeaderId: tl.id })).length,
+    }))
+  );
+  return ok(res, { teamLeaders: withCounts });
 });
 
 module.exports = {

@@ -3,6 +3,7 @@ const { signToken, verifyPassword } = require("../services/authService");
 const { ok, fail } = require("../utils/apiResponse");
 const asyncHandler = require("../utils/asyncHandler");
 const { serializeUser } = require("../utils/serialize");
+const store = require("../data/store");
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -21,7 +22,7 @@ const login = asyncHandler(async (req, res, next) => {
     return next(fail(400, "MISSING_FIELDS", "Employee ID and password are required."));
   }
 
-  const user = findUserByEmployeeId(employeeId);
+  const user = await findUserByEmployeeId(employeeId);
   if (!user || !verifyPassword(password, user.password_hash)) {
     return next(fail(401, "INVALID_CREDENTIALS", "Employee ID or password is incorrect."));
   }
@@ -31,7 +32,7 @@ const login = asyncHandler(async (req, res, next) => {
 
   const token = signToken(user);
   setAuthCookie(res, token);
-  return ok(res, { token, user: serializeUser(user) });
+  return ok(res, { token, user: await serializeUser(user) });
 });
 
 const logout = asyncHandler(async (req, res) => {
@@ -40,7 +41,7 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 const me = asyncHandler(async (req, res) => {
-  return ok(res, { user: serializeUser(req.user) });
+  return ok(res, { user: await serializeUser(req.user) });
 });
 
 // Dummy-data phase: acknowledges the request without sending real email/SMS.
@@ -48,7 +49,7 @@ const me = asyncHandler(async (req, res) => {
 const forgotPassword = asyncHandler(async (req, res, next) => {
   const { employeeId } = req.body || {};
   if (!employeeId) return next(fail(400, "MISSING_FIELDS", "Employee ID is required."));
-  const user = findUserByEmployeeId(employeeId);
+  const user = await findUserByEmployeeId(employeeId);
   // Always return success shape regardless of whether the account exists,
   // so this endpoint can't be used to enumerate valid Employee IDs.
   return ok(res, {

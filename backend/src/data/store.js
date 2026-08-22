@@ -1,18 +1,15 @@
 // ---------------------------------------------------------------------------
-// DUMMY DATA LAYER (in-memory)
+// DATA LAYER — Supabase (Postgres)
 //
-// This module is the ONLY place that touches "raw" data. Every table below
-// mirrors the schema recommended in the PRD (§38-40) so that swapping this
-// out for real PostgreSQL/Supabase later is a matter of rewriting the
-// functions in this file with SQL queries — nothing above this layer
-// (controllers/services/routes) needs to change.
-//
-// Data resets whenever the process restarts. That's expected for a dummy
-// data phase; Phase 2 replaces this file with a real database client.
+// This module is the ONLY place that touches the database. Every function
+// here is async and talks to Supabase via the service-role client. Nothing
+// above this layer (controllers/services/routes) should ever query
+// Supabase directly — that keeps the rest of the app storage-agnostic.
 // ---------------------------------------------------------------------------
 
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
+const supabase = require("./supabaseClient");
 const { getDhakaDateKey, getDhakaWeekStartKey, getDhakaMonthKey } = require("../utils/dhakaTime");
 
 const ROLES = {
@@ -25,25 +22,35 @@ function genId(prefix) {
   return `${prefix}_${crypto.randomBytes(9).toString("hex")}`;
 }
 
-/** @type {Array<object>} */
-const users = [];
-/** @type {Array<object>} */
-const submissions = [];
-/** @type {Array<object>} */
-const auditLogs = [];
+function throwIfError(error, context) {
+  if (error) {
+    const err = new Error(`[supabase:${context}] ${error.message}`);
+    err.cause = error;
+    throw err;
+  }
+}
 
 // --- User helpers -----------------------------------------------------------
 
-function findUserByEmployeeId(employeeId) {
-  const needle = String(employeeId || "").trim().toLowerCase();
-  return users.find((u) => u.employee_id.toLowerCase() === needle) || null;
+async function findUserByEmployeeId(employeeId) {
+  if (!employeeId) return null;
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .ilike("employee_id", String(employeeId).trim())
+    .maybeSingle();
+  throwIfError(error, "findUserByEmployeeId");
+  return data || null;
 }
 
-function findUserById(id) {
-  return users.find((u) => u.id === id) || null;
+async function findUserById(id) {
+  if (!id) return null;
+  const { data, error } = await supabase.from("users").select("*").eq("id", id).maybeSingle();
+  throwIfError(error, "findUserById");
+  return data || null;
 }
 
-function createUser({
+async function createUser({
   employeeId,
   name,
   nameEn,
@@ -60,7 +67,7 @@ function createUser({
   status = "active",
 }) {
   const now = new Date().toISOString();
-  const user = {
+  const row = {
     id: genId("usr"),
     employee_id: employeeId,
     name,
@@ -79,37 +86,55 @@ function createUser({
     created_at: now,
     updated_at: now,
   };
-  users.push(user);
-  return user;
+  const { data, error } = await supabase.from("users").insert(row).select().single();
+  throwIfError(error, "createUser");
+  return data;
 }
 
-function updateUser(id, patch) {
-  const user = findUserById(id);
-  if (!user) return null;
-  Object.assign(user, patch, { updated_at: new Date().toISOString() });
-  return user;
+async function updateUser(id, patch) {
+  const { data, error } = await supabase
+    .from("users")
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  throwIfError(error, "updateUser");
+  return data || null;
 }
 
-function listEmployees({ teamLeaderId = null } = {}) {
-  return users.filter((u) => {
-    if (u.role !== ROLES.MARKETING_OFFICER) return false;
-    if (teamLeaderId && u.team_leader_id !== teamLeaderId) return false;
-    return true;
-  });
+/** Every user, optionally filtered by role. Replaces old direct `store.users` array access. */
+async function listAllUsers({ role = null } = {}) {
+  let q = supabase.from("users").select("*");
+  if (role) q = q.eq("role", role);
+  const { data, error } = await q;
+  throwIfError(error, "listAllUsers");
+  return data || [];
+}
+
+async function listEmployees({ teamLeaderId = null } = {}) {
+  let q = supabase.from("users").select("*").eq("role", ROLES.MARKETING_OFFICER);
+  if (teamLeaderId) q = q.eq("team_leader_id", teamLeaderId);
+  const { data, error } = await q;
+  throwIfError(error, "listEmployees");
+  return data || [];
 }
 
 /** All Team Leader IDs reporting to a given Manager (Super Admin). */
-function listTeamLeaderIdsForManager(managerId) {
-  return users
-    .filter((u) => u.role === ROLES.ADMIN && u.manager_id === managerId)
-    .map((u) => u.id);
+async function listTeamLeaderIdsForManager(managerId) {
+  const { data, error } = await supabase
+    .from("users")
+    .select("id")
+    .eq("role", ROLES.ADMIN)
+    .eq("manager_id", managerId);
+  throwIfError(error, "listTeamLeaderIdsForManager");
+  return (data || []).map((u) => u.id);
 }
 
 // --- Submission helpers ------------------------------------------------------
 
-function createSubmission({ employeeUser, address, mobile, opinion }) {
+async function createSubmission({ employeeUser, address, mobile, opinion }) {
   const now = new Date();
-  const record = {
+  const row = {
     id: genId("sub"),
     employee_user_id: employeeUser.id,
     employee_id: employeeUser.employee_id,
@@ -123,29 +148,51 @@ function createSubmission({ employeeUser, address, mobile, opinion }) {
     created_at: now.toISOString(),
     updated_at: now.toISOString(),
   };
-  submissions.push(record);
-  return record;
+  const { data, error } = await supabase.from("submissions").insert(row).select().single();
+  throwIfError(error, "createSubmission");
+  return data;
 }
 
-function getEmployeeTotal(employeeUserId) {
-  let count = 0;
-  for (const s of submissions) if (s.employee_user_id === employeeUserId) count += 1;
-  return count;
+/** Bulk insert — used by the seed script so it doesn't issue hundreds of round trips. */
+async function bulkCreateSubmissions(rows) {
+  if (!rows.length) return;
+  const { error } = await supabase.from("submissions").insert(rows);
+  throwIfError(error, "bulkCreateSubmissions");
 }
 
-function getEmployeeStats(employeeUserId) {
+async function findSubmissionById(id) {
+  const { data, error } = await supabase.from("submissions").select("*").eq("id", id).maybeSingle();
+  throwIfError(error, "findSubmissionById");
+  return data || null;
+}
+
+async function getEmployeeTotal(employeeUserId) {
+  const { count, error } = await supabase
+    .from("submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("employee_user_id", employeeUserId);
+  throwIfError(error, "getEmployeeTotal");
+  return count || 0;
+}
+
+async function getEmployeeStats(employeeUserId) {
   const now = new Date();
   const todayKey = getDhakaDateKey(now);
   const weekStartKey = getDhakaWeekStartKey(now);
   const monthKey = getDhakaMonthKey(now);
+
+  const { data, error } = await supabase
+    .from("submissions")
+    .select("submission_date")
+    .eq("employee_user_id", employeeUserId);
+  throwIfError(error, "getEmployeeStats");
 
   let today = 0;
   let week = 0;
   let month = 0;
   let total = 0;
 
-  for (const s of submissions) {
-    if (s.employee_user_id !== employeeUserId) continue;
+  for (const s of data || []) {
     total += 1;
     if (s.submission_date === todayKey) today += 1;
     if (s.submission_date >= weekStartKey) week += 1;
@@ -156,10 +203,18 @@ function getEmployeeStats(employeeUserId) {
 }
 
 /** RANK() OVER (ORDER BY total_submissions DESC) among active Marketing Officers. */
-function getRanks() {
-  const active = users.filter((u) => u.role === ROLES.MARKETING_OFFICER && u.status === "active");
+async function getRanks() {
+  const active = (await listEmployees()).filter((u) => u.status === "active");
+
+  // `submission_counts()` is a SQL function (see supabase_schema.sql) that
+  // returns { employee_user_id, total } grouped server-side — much cheaper
+  // than pulling every submission row over the wire.
+  const { data: countRows, error } = await supabase.rpc("submission_counts");
+  throwIfError(error, "getRanks:submission_counts");
+  const countMap = new Map((countRows || []).map((r) => [r.employee_user_id, Number(r.total)]));
+
   const totals = active
-    .map((u) => ({ id: u.id, total: getEmployeeTotal(u.id) }))
+    .map((u) => ({ id: u.id, total: countMap.get(u.id) || 0 }))
     .sort((a, b) => b.total - a.total);
 
   const ranks = new Map();
@@ -174,16 +229,16 @@ function getRanks() {
   return { ranks, outOf: totals.length };
 }
 
-function getRankFor(employeeUserId) {
-  const { ranks, outOf } = getRanks();
+async function getRankFor(employeeUserId) {
+  const { ranks, outOf } = await getRanks();
   return { rank: ranks.get(employeeUserId) ?? outOf, outOf };
 }
 
 /**
  * Filter/search/sort submissions (no pagination applied).
- * scope: null (all, Super Admin) | { teamLeaderIds: string[] } (Admin's team) | { employeeUserId } (self)
+ * scope: null (all, Super Admin) | { employeeUserId } (self) | { teamLeaderIds: string[] } (Admin's team)
  */
-function filterSubmissions({
+async function filterSubmissions({
   scope = null,
   search = "",
   employeeUserId = null,
@@ -192,41 +247,58 @@ function filterSubmissions({
   dateTo = null,
   sort = "newest",
 } = {}) {
-  let rows = submissions;
+  // Resolve which employee_user_ids are in scope, if any restriction applies.
+  let allowedEmployeeIds = null; // null = no restriction (Super Admin, unscoped)
 
   if (scope && scope.employeeUserId) {
-    rows = rows.filter((s) => s.employee_user_id === scope.employeeUserId);
+    allowedEmployeeIds = new Set([scope.employeeUserId]);
   } else if (scope && scope.teamLeaderIds) {
-    const allowedEmployeeIds = new Set(
-      users
-        .filter((u) => scope.teamLeaderIds.includes(u.team_leader_id))
-        .map((u) => u.id)
-    );
-    rows = rows.filter((s) => allowedEmployeeIds.has(s.employee_user_id));
+    const { data, error } = await supabase.from("users").select("id").in("team_leader_id", scope.teamLeaderIds);
+    throwIfError(error, "filterSubmissions:scope");
+    allowedEmployeeIds = new Set((data || []).map((u) => u.id));
   }
 
-  if (employeeUserId) rows = rows.filter((s) => s.employee_user_id === employeeUserId);
+  if (employeeUserId) {
+    allowedEmployeeIds = allowedEmployeeIds
+      ? new Set([...allowedEmployeeIds].filter((id) => id === employeeUserId))
+      : new Set([employeeUserId]);
+  }
 
   if (teamLeaderId) {
-    const allowedEmployeeIds = new Set(
-      users.filter((u) => u.team_leader_id === teamLeaderId).map((u) => u.id)
-    );
-    rows = rows.filter((s) => allowedEmployeeIds.has(s.employee_user_id));
+    const { data, error } = await supabase.from("users").select("id").eq("team_leader_id", teamLeaderId);
+    throwIfError(error, "filterSubmissions:teamLeaderId");
+    const ids = new Set((data || []).map((u) => u.id));
+    allowedEmployeeIds = allowedEmployeeIds ? new Set([...allowedEmployeeIds].filter((id) => ids.has(id))) : ids;
   }
 
-  if (dateFrom) rows = rows.filter((s) => s.submission_date >= dateFrom);
-  if (dateTo) rows = rows.filter((s) => s.submission_date <= dateTo);
+  if (allowedEmployeeIds && allowedEmployeeIds.size === 0) return [];
+
+  let q = supabase.from("submissions").select("*").range(0, 4999);
+  if (allowedEmployeeIds) q = q.in("employee_user_id", [...allowedEmployeeIds]);
+  if (dateFrom) q = q.gte("submission_date", dateFrom);
+  if (dateTo) q = q.lte("submission_date", dateTo);
+
+  const { data, error } = await q;
+  throwIfError(error, "filterSubmissions");
+  let rows = data || [];
 
   if (search) {
     const needle = search.trim().toLowerCase();
+    const employeeIds = [...new Set(rows.map((r) => r.employee_user_id))];
+    let nameMap = new Map();
+    if (employeeIds.length) {
+      const { data: emps, error: e2 } = await supabase.from("users").select("id,name_en").in("id", employeeIds);
+      throwIfError(e2, "filterSubmissions:search");
+      nameMap = new Map((emps || []).map((u) => [u.id, u.name_en]));
+    }
     rows = rows.filter((s) => {
-      const employee = findUserById(s.employee_user_id);
+      const nameEn = nameMap.get(s.employee_user_id) || "";
       return (
         s.employee_id.toLowerCase().includes(needle) ||
         s.name_snapshot.toLowerCase().includes(needle) ||
         (s.mobile || "").toLowerCase().includes(needle) ||
         (s.designation_snapshot || "").toLowerCase().includes(needle) ||
-        (employee?.name_en || "").toLowerCase().includes(needle)
+        nameEn.toLowerCase().includes(needle)
       );
     });
   }
@@ -247,8 +319,8 @@ function filterSubmissions({
 }
 
 /** Paginated version of filterSubmissions — for list endpoints (page size capped at 100). */
-function querySubmissions(options = {}) {
-  const rows = filterSubmissions(options);
+async function querySubmissions(options = {}) {
+  const rows = await filterSubmissions(options);
   const total = rows.length;
   const safeLimit = Math.min(Math.max(Number(options.limit) || 20, 1), 100);
   const safePage = Math.max(Number(options.page) || 1, 1);
@@ -262,12 +334,12 @@ function querySubmissions(options = {}) {
 }
 
 /** Unpaginated version — for dashboard counts and Excel export, where every matching row is needed. */
-function queryAllSubmissions(options = {}) {
+async function queryAllSubmissions(options = {}) {
   return filterSubmissions(options);
 }
 
-function addAuditLog({ actor, action, target = null, metadata = {} }) {
-  auditLogs.push({
+async function addAuditLog({ actor, action, target = null, metadata = {} }) {
+  const row = {
     id: genId("log"),
     actor_id: actor.id,
     actor_name: actor.name_en || actor.name,
@@ -276,22 +348,24 @@ function addAuditLog({ actor, action, target = null, metadata = {} }) {
     target,
     metadata,
     created_at: new Date().toISOString(),
-  });
+  };
+  const { error } = await supabase.from("audit_logs").insert(row);
+  throwIfError(error, "addAuditLog");
 }
 
 module.exports = {
   ROLES,
   genId,
-  users,
-  submissions,
-  auditLogs,
   findUserByEmployeeId,
   findUserById,
   createUser,
   updateUser,
+  listAllUsers,
   listEmployees,
   listTeamLeaderIdsForManager,
   createSubmission,
+  bulkCreateSubmissions,
+  findSubmissionById,
   getEmployeeTotal,
   getEmployeeStats,
   getRanks,

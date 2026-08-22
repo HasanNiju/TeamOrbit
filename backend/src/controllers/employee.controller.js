@@ -10,8 +10,9 @@ const { isWithinSubmissionWindow, WINDOW_OPEN_MINUTE, WINDOW_CLOSE_MINUTE } = re
 const EDITABLE_FIELDS = { name: "name", mobile: "mobile", address: "address", zone: "zone" };
 
 const getMe = asyncHandler(async (req, res) => {
-  const { rank, outOf } = store.getRankFor(req.user.id);
-  return ok(res, { user: serializeUser(req.user), rank, rankOutOf: outOf, totalSubmissions: store.getEmployeeTotal(req.user.id) });
+  const { rank, outOf } = await store.getRankFor(req.user.id);
+  const totalSubmissions = await store.getEmployeeTotal(req.user.id);
+  return ok(res, { user: await serializeUser(req.user), rank, rankOutOf: outOf, totalSubmissions });
 });
 
 const updateMe = asyncHandler(async (req, res) => {
@@ -19,32 +20,34 @@ const updateMe = asyncHandler(async (req, res) => {
   for (const [bodyKey, storeKey] of Object.entries(EDITABLE_FIELDS)) {
     if (bodyKey in (req.body || {})) patch[storeKey] = req.body[bodyKey];
   }
-  const updated = store.updateUser(req.user.id, patch);
-  return ok(res, { user: serializeUser(updated) });
+  const updated = await store.updateUser(req.user.id, patch);
+  return ok(res, { user: await serializeUser(updated) });
 });
 
 const uploadPhoto = asyncHandler(async (req, res, next) => {
   if (!req.file) return next(fail(400, "MISSING_FILE", "No photo uploaded."));
-  const url = `/uploads/${req.file.filename}`;
-  const updated = store.updateUser(req.user.id, { profile_photo_url: url });
-  return ok(res, { user: serializeUser(updated) });
+  // No durable filesystem in a serverless function — store the photo as a
+  // base64 data URI directly on the user row instead of writing to disk.
+  const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+  const updated = await store.updateUser(req.user.id, { profile_photo_url: dataUri });
+  return ok(res, { user: await serializeUser(updated) });
 });
 
 const getMyStats = asyncHandler(async (req, res) => {
-  const stats = store.getEmployeeStats(req.user.id);
-  const { rank, outOf } = store.getRankFor(req.user.id);
+  const stats = await store.getEmployeeStats(req.user.id);
+  const { rank, outOf } = await store.getRankFor(req.user.id);
   return ok(res, { ...stats, rank, rankOutOf: outOf });
 });
 
 const getMySubmissions = asyncHandler(async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
-  const { rows, pagination } = store.querySubmissions({
+  const { rows, pagination } = await store.querySubmissions({
     scope: { employeeUserId: req.user.id },
     page,
     limit,
     sort: "newest",
   });
-  return ok(res, { submissions: rows.map(serializeSubmission), pagination });
+  return ok(res, { submissions: await Promise.all(rows.map(serializeSubmission)), pagination });
 });
 
 const createSubmission = asyncHandler(async (req, res, next) => {
@@ -74,14 +77,14 @@ const createSubmission = asyncHandler(async (req, res, next) => {
     designation: req.body.designation || req.user.designation,
   };
 
-  const record = store.createSubmission({
+  const record = await store.createSubmission({
     employeeUser: { ...employeeUser, id: req.user.id, employee_id: req.user.employee_id },
     address: req.body.address,
     mobile: req.body.mobile,
     opinion: req.body.opinion,
   });
 
-  return ok(res, { submission: serializeSubmission(record) }, 201);
+  return ok(res, { submission: await serializeSubmission(record) }, 201);
 });
 
 /** Small helper the frontend can poll to render the "closed" / "opens at 8am" banners. */

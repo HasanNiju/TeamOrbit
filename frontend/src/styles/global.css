@@ -675,6 +675,59 @@ button {
   margin-top: 4px;
 }
 
+/* Segmented "Login as User / Login as Admin" toggle */
+.login-mode-toggle {
+  display: flex;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 4px;
+  margin-bottom: 24px;
+  gap: 4px;
+}
+
+.login-mode-toggle__btn {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 10px 12px;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.login-mode-toggle__btn--active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.login-role-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.login-role-toggle__btn {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.login-role-toggle__btn--active {
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+  background: var(--color-primary-tint);
+}
+
 /* ==========================================================================
    Submission page date/time header
    ========================================================================== */

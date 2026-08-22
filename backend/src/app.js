@@ -52,9 +52,6 @@ function buildApp() {
     app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
   }
 
-  // Uploaded profile photos.
-  app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
-
   // API.
   app.use("/api", apiRoutes);
 
