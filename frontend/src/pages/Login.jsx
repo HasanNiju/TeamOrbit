@@ -144,36 +144,48 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <div className="login-brand">
-        <div className="login-brand__mark">TO</div>
-        <h1 className="login-brand__title">{t("appName")}</h1>
-        <p className="login-brand__subtitle">
-          {mode === "admin" ? "Team Leader & Manager Dashboard" : t("login.subtitle")}
-        </p>
-      </div>
+      <div className="login-card">
+        {/* Left panel on desktop (min-width: 900px); stacks above the form on mobile. */}
+        <div className="login-panel login-panel--brand">
+          <div className="login-brand">
+            <div className="login-brand__mark">TO</div>
+            <h1 className="login-brand__title">{t("appName")}</h1>
+            <p className="login-brand__subtitle">
+              {mode === "admin" ? "Team Leader & Manager Dashboard" : t("login.subtitle")}
+            </p>
+          </div>
+          <ul className="login-brand__points">
+            <li>Daily field reports, submitted in seconds</li>
+            <li>Live stats and team performance</li>
+            <li>One link — works on phone or PC</li>
+          </ul>
+        </div>
 
-      <div className="login-mode-toggle" role="tablist" aria-label="Login as">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === "user"}
-          className={`login-mode-toggle__btn ${mode === "user" ? "login-mode-toggle__btn--active" : ""}`}
-          onClick={() => setMode("user")}
-        >
-          Login as User
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === "admin"}
-          className={`login-mode-toggle__btn ${mode === "admin" ? "login-mode-toggle__btn--active" : ""}`}
-          onClick={() => setMode("admin")}
-        >
-          Login as Admin
-        </button>
-      </div>
+        <div className="login-panel login-panel--form">
+          <div className="login-mode-toggle" role="tablist" aria-label="Login as">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "user"}
+              className={`login-mode-toggle__btn ${mode === "user" ? "login-mode-toggle__btn--active" : ""}`}
+              onClick={() => setMode("user")}
+            >
+              Login as User
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "admin"}
+              className={`login-mode-toggle__btn ${mode === "admin" ? "login-mode-toggle__btn--active" : ""}`}
+              onClick={() => setMode("admin")}
+            >
+              Login as Admin
+            </button>
+          </div>
 
-      {mode === "user" ? <UserLoginForm /> : <AdminLoginForm />}
+          {mode === "user" ? <UserLoginForm /> : <AdminLoginForm />}
+        </div>
+      </div>
     </div>
   );
 }

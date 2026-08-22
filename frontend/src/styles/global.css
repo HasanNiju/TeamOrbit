@@ -620,6 +620,10 @@ button {
 
 /* ==========================================================================
    Login
+   Mobile (default): a single stacked column, same as always.
+   Desktop (>=900px): a separate split-panel layout — see the media query
+   at the bottom of this section. .login-card/.login-panel are no-ops on
+   mobile so the phone experience is untouched.
    ========================================================================== */
 .login-page {
   min-height: 100%;
@@ -629,6 +633,18 @@ button {
   padding: 32px 24px;
   max-width: 420px;
   margin: 0 auto;
+}
+
+.login-card {
+  display: contents; /* mobile: no wrapper styling, children lay out as before */
+}
+
+.login-panel {
+  display: contents;
+}
+
+.login-brand__points {
+  display: none; /* desktop-only marketing copy */
 }
 
 .login-brand {
@@ -726,6 +742,107 @@ button {
   border-color: var(--color-primary);
   color: var(--color-primary-dark);
   background: var(--color-primary-tint);
+}
+
+/* --------------------------------------------------------------------------
+   Desktop/PC login — separate split-panel version.
+   Below 900px this whole block is inactive and the mobile styles above
+   (single centered column) are what renders.
+   -------------------------------------------------------------------------- */
+@media (min-width: 900px) {
+  .login-page {
+    max-width: none;
+    padding: 40px;
+    background: var(--color-primary-tint);
+  }
+
+  .login-card {
+    display: flex;
+    width: 100%;
+    max-width: 880px;
+    margin: 0 auto;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    min-height: 520px;
+  }
+
+  .login-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .login-panel--brand {
+    flex: 0 0 42%;
+    background: linear-gradient(160deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: #fff;
+    padding: 48px 40px;
+  }
+
+  .login-panel--brand .login-brand {
+    text-align: left;
+    margin-bottom: 40px;
+  }
+
+  .login-panel--brand .login-brand__mark {
+    margin: 0 0 20px;
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .login-panel--brand .login-brand__mark::after {
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+
+  .login-panel--brand .login-brand__title {
+    font-size: 26px;
+  }
+
+  .login-panel--brand .login-brand__subtitle {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .login-brand__points {
+    display: block;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .login-brand__points li {
+    position: relative;
+    padding-left: 22px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  .login-brand__points li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-accent);
+  }
+
+  .login-panel--form {
+    flex: 1 1 58%;
+    padding: 56px 64px;
+  }
+
+  .login-panel--form .login-mode-toggle {
+    max-width: 320px;
+  }
+
+  .login-panel--form form {
+    max-width: 360px;
+  }
 }
 
 /* ==========================================================================
