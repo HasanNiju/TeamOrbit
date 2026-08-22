@@ -1,0 +1,29 @@
+{
+  "name": "team-orbit-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TeamOrbit Employee Reporting System — backend API + Admin Management Panel. Ships with an in-memory dummy data layer that mirrors the future PostgreSQL/Supabase schema, so swapping to a real database only touches src/data/store.js.",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../i18n/LanguageContext";
 import { getSubmissionWindowState, formatDhakaDate } from "../utils/dhakaTime";
 import { validateSubmission } from "../utils/validation";
-import * as api from "../api/mockApi";
+import * as api from "../api/client";
 import Field from "../components/Field";
 import Button from "../components/Button";
 import Toast from "../components/Toast";

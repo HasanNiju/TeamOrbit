@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../i18n/LanguageContext";
 import { formatNumber } from "../utils/banglaNumerals";
-import * as api from "../api/mockApi";
+import * as api from "../api/client";
 
 function StatCard({ label, value, unit, language }) {
   return (

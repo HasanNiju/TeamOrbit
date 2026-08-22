@@ -1,5 +1,5 @@
 import { createContext, useContext, useCallback, useEffect, useMemo, useState } from "react";
-import * as api from "../api/mockApi";
+import * as api from "../api/client";
 
 const AuthContext = createContext(null);
 

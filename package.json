@@ -1,20 +1,16 @@
 {
-  "name": "employee-reporting-frontend",
+  "name": "team-orbit",
   "private": true,
   "version": "1.0.0",
-  "type": "module",
+  "description": "TeamOrbit Employee Reporting System — monorepo (employee frontend + backend API + admin panel), deployable as a single service.",
+  "workspaces": ["backend", "frontend"],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "npm run build -w frontend",
+    "start": "npm run start -w backend",
+    "dev:backend": "npm run dev -w backend",
+    "dev:frontend": "npm run dev -w frontend"
   },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.0"
+  "engines": {
+    "node": ">=18"
   }
 }
