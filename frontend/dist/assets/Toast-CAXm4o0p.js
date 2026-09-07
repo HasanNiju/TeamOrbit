@@ -1,0 +1,1 @@
+import{r as s,j as u}from"./index-DAbnW3w0.js";function c({message:t,variant:o="success",onDismiss:r,duration:e=3e3}){return s.useEffect(()=>{if(!t)return;const i=setTimeout(r,e);return()=>clearTimeout(i)},[t,e,r]),t?u.jsx("div",{className:`toast toast--${o}`,role:"status","aria-live":"polite",children:t}):null}export{c as T};

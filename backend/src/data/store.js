@@ -50,6 +50,15 @@ async function findUserById(id) {
   return data || null;
 }
 
+/** Batch lookup — one round trip for many ids, instead of one query per id. */
+async function findUsersByIds(ids) {
+  const unique = [...new Set((ids || []).filter(Boolean))];
+  if (unique.length === 0) return new Map();
+  const { data, error } = await supabase.from("users").select("*").in("id", unique);
+  throwIfError(error, "findUsersByIds");
+  return new Map((data || []).map((u) => [u.id, u]));
+}
+
 async function createUser({
   employeeId,
   name,
@@ -63,7 +72,7 @@ async function createUser({
   profilePhotoUrl = null,
   teamLeaderId = null,
   managerId = null,
-  language = "bn",
+  language = "en",
   status = "active",
 }) {
   const now = new Date().toISOString();
@@ -134,6 +143,17 @@ async function listTeamLeaderIdsForManager(managerId) {
     .eq("manager_id", managerId);
   throwIfError(error, "listTeamLeaderIdsForManager");
   return (data || []).map((u) => u.id);
+}
+
+/** Marketing Officer counts for every Team Leader, in one grouped query instead of one query per leader. */
+async function getEmployeeCountsByTeamLeader() {
+  const { data, error } = await supabase.from("users").select("team_leader_id").eq("role", ROLES.MARKETING_OFFICER).not("team_leader_id", "is", null);
+  throwIfError(error, "getEmployeeCountsByTeamLeader");
+  const counts = new Map();
+  for (const row of data || []) {
+    counts.set(row.team_leader_id, (counts.get(row.team_leader_id) || 0) + 1);
+  }
+  return counts;
 }
 
 // --- Submission helpers ------------------------------------------------------
@@ -364,12 +384,14 @@ module.exports = {
   genId,
   findUserByEmployeeId,
   findUserById,
+  findUsersByIds,
   createUser,
   updateUser,
   deleteUser,
   listAllUsers,
   listEmployees,
   listTeamLeaderIdsForManager,
+  getEmployeeCountsByTeamLeader,
   createSubmission,
   bulkCreateSubmissions,
   findSubmissionById,

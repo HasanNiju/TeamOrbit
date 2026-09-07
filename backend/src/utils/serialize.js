@@ -51,8 +51,11 @@ async function serializeSubmission(s) {
   return {
     id: s.id,
     employeeId: s.employee_id,
+    employeeName: employee?.name_en || null,
     name: employee?.name_en || s.name_snapshot,
+    contactName: s.name_snapshot,
     designation: s.designation_snapshot,
+    contactDesignation: s.designation_snapshot,
     address: s.address,
     mobile: s.mobile,
     opinion: s.opinion,

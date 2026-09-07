@@ -195,8 +195,8 @@ export async function renderSubmissions(root, user) {
       title: "Submission Details",
       bodyHtml: `
         ${detailRow("Employee ID", s.employeeId)}
-        ${detailRow("Name", s.name)}
-        ${detailRow("Designation", s.designation)}
+        ${detailRow("Contact Person's Name", s.contactName)}
+        ${detailRow("Contact Person's Designation", s.contactDesignation)}
         ${detailRow("Date", formatDate(s.date))}
         ${detailRow("Submitted", formatDateTime(s.submittedAt))}
         ${detailRow("Address", s.address)}

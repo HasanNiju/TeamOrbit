@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AdminAuthProvider, useAdminAuth } from "./context/AdminAuthContext";
@@ -6,16 +7,31 @@ import RequireAuth from "./components/RequireAuth";
 import RequireAdminAuth from "./components/RequireAdminAuth";
 import AppLayout from "./components/AppLayout";
 import Login from "./pages/Login";
-import Submission from "./pages/Submission";
-import Stats from "./pages/Stats";
-import Profile from "./pages/Profile";
-import AdminLayout from "./pages/admin/AdminLayout";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminSubmissions from "./pages/admin/AdminSubmissions";
-import AdminEmployees from "./pages/admin/AdminEmployees";
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminTeamLeaders from "./pages/admin/AdminTeamLeaders";
-import AdminAccount from "./pages/admin/AdminAccount";
+
+// Route-level code splitting: most people who load this app are Marketing
+// Officers filling out one submission form, not admins — they shouldn't
+// have to download the entire admin panel bundle first. Splitting each
+// page into its own chunk (and the employee app separately from the admin
+// panel) means a phone on a slow connection only fetches the JS it's
+// actually going to use for the screen it lands on.
+const Submission = lazy(() => import("./pages/Submission"));
+const Stats = lazy(() => import("./pages/Stats"));
+const Profile = lazy(() => import("./pages/Profile"));
+const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminSubmissions = lazy(() => import("./pages/admin/AdminSubmissions"));
+const AdminEmployees = lazy(() => import("./pages/admin/AdminEmployees"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminTeamLeaders = lazy(() => import("./pages/admin/AdminTeamLeaders"));
+const AdminAccount = lazy(() => import("./pages/admin/AdminAccount"));
+
+function RouteFallback() {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+      <span className="spinner" aria-hidden="true" />
+    </div>
+  );
+}
 
 function LoginRoute() {
   const { isAuthenticated } = useAuth();
@@ -48,7 +64,8 @@ export default function App() {
     <LanguageProvider>
       <AuthProvider>
         <AdminAuthProvider>
-          <Routes>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
             <Route path="/login" element={<LoginRoute />} />
 
             <Route
@@ -105,6 +122,7 @@ export default function App() {
 
             <Route path="*" element={<CatchAllRedirect />} />
           </Routes>
+          </Suspense>
         </AdminAuthProvider>
       </AuthProvider>
     </LanguageProvider>

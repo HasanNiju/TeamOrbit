@@ -152,8 +152,12 @@ export default function AdminSubmissions() {
               <span className="admin-detail-row__value">{selected.employeeId}</span>
             </div>
             <div className="admin-detail-row">
-              <span className="admin-detail-row__label">Designation</span>
-              <span className="admin-detail-row__value">{selected.designation || "—"}</span>
+              <span className="admin-detail-row__label">Contact Person's Name</span>
+              <span className="admin-detail-row__value">{selected.contactName || "—"}</span>
+            </div>
+            <div className="admin-detail-row">
+              <span className="admin-detail-row__label">Contact Person's Designation</span>
+              <span className="admin-detail-row__value">{selected.contactDesignation || "—"}</span>
             </div>
             <div className="admin-detail-row">
               <span className="admin-detail-row__label">Mobile</span>

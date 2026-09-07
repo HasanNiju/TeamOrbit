@@ -13,10 +13,15 @@ function monthStart() { return `${getDhakaMonthKey(new Date())}-01`; }
 // --- Dashboard ---------------------------------------------------------------
 
 const getDashboard = asyncHandler(async (req, res) => {
-  const employees = await store.listEmployees({ teamLeaderId: req.user.id });
-  const todayRows = await store.queryAllSubmissions({ scope: { teamLeaderIds: [req.user.id] }, dateFrom: today(), dateTo: today() });
-  const weekRows = await store.queryAllSubmissions({ scope: { teamLeaderIds: [req.user.id] }, dateFrom: weekStart() });
-  const monthRows = await store.queryAllSubmissions({ scope: { teamLeaderIds: [req.user.id] }, dateFrom: monthStart() });
+  // These four queries are independent — run them concurrently instead of
+  // one after another so the dashboard loads in the time of the slowest
+  // query, not the sum of all four.
+  const [employees, todayRows, weekRows, monthRows] = await Promise.all([
+    store.listEmployees({ teamLeaderId: req.user.id }),
+    store.queryAllSubmissions({ scope: { teamLeaderIds: [req.user.id] }, dateFrom: today(), dateTo: today() }),
+    store.queryAllSubmissions({ scope: { teamLeaderIds: [req.user.id] }, dateFrom: weekStart() }),
+    store.queryAllSubmissions({ scope: { teamLeaderIds: [req.user.id] }, dateFrom: monthStart() }),
+  ]);
 
   return ok(res, {
     totalEmployees: employees.length,
@@ -121,7 +126,7 @@ const createEmployee = asyncHandler(async (req, res, next) => {
     address,
     teamLeaderId: req.user.id,
     managerId: req.user.manager_id,
-    language: "bn",
+    language: "en",
     status: "active",
   });
 

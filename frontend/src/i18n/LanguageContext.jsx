@@ -19,9 +19,9 @@ function interpolate(str, vars) {
 export function LanguageProvider({ children }) {
   const [language, setLanguageState] = useState(() => {
     try {
-      return localStorage.getItem(STORAGE_KEY) || "bn";
+      return localStorage.getItem(STORAGE_KEY) || "en";
     } catch {
-      return "bn";
+      return "en";
     }
   });
 
@@ -41,11 +41,11 @@ export function LanguageProvider({ children }) {
 
   const t = useCallback(
     (key, vars) => {
-      const dict = DICTS[language] || DICTS.bn;
+      const dict = DICTS[language] || DICTS.en;
       const value = getByPath(dict, key);
       if (value == null) {
-        // Fall back to Bangla, then to the raw key, rather than crashing the UI.
-        const fallback = getByPath(DICTS.bn, key);
+        // Fall back to English, then to the raw key, rather than crashing the UI.
+        const fallback = getByPath(DICTS.en, key);
         return fallback != null ? interpolate(fallback, vars) : key;
       }
       return interpolate(value, vars);

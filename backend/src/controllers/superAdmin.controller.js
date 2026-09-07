@@ -13,11 +13,16 @@ function monthStart() { return `${getDhakaMonthKey(new Date())}-01`; }
 // --- Dashboard ---------------------------------------------------------------
 
 const getDashboard = asyncHandler(async (req, res) => {
-  const employees = await store.listAllUsers({ role: store.ROLES.MARKETING_OFFICER });
-  const teamLeaders = await store.listAllUsers({ role: store.ROLES.ADMIN });
-  const todayRows = await store.queryAllSubmissions({ dateFrom: today(), dateTo: today() });
-  const weekRows = await store.queryAllSubmissions({ dateFrom: weekStart() });
-  const monthRows = await store.queryAllSubmissions({ dateFrom: monthStart() });
+  // Five independent queries — fire them concurrently rather than awaiting
+  // each in turn, so this endpoint takes as long as the slowest single
+  // query instead of the sum of all five round trips.
+  const [employees, teamLeaders, todayRows, weekRows, monthRows] = await Promise.all([
+    store.listAllUsers({ role: store.ROLES.MARKETING_OFFICER }),
+    store.listAllUsers({ role: store.ROLES.ADMIN }),
+    store.queryAllSubmissions({ dateFrom: today(), dateTo: today() }),
+    store.queryAllSubmissions({ dateFrom: weekStart() }),
+    store.queryAllSubmissions({ dateFrom: monthStart() }),
+  ]);
 
   return ok(res, {
     totalEmployees: employees.length,
@@ -134,7 +139,7 @@ const createUser = asyncHandler(async (req, res, next) => {
     address,
     teamLeaderId: resolvedTeamLeaderId,
     managerId: resolvedManagerId,
-    language: role === "MARKETING_OFFICER" ? "bn" : "en",
+    language: "en",
     status: "active",
   });
 
@@ -244,20 +249,19 @@ const updateAssignments = asyncHandler(async (req, res, next) => {
 
 const listTeamLeaders = asyncHandler(async (req, res) => {
   const teamLeaders = await store.listAllUsers({ role: store.ROLES.ADMIN });
-  const withCounts = await Promise.all(
-    teamLeaders.map(async (tl) => ({
-      id: tl.id,
-      employeeId: tl.employee_id,
-      name: tl.name_en,
-      zone: tl.zone,
-      mobile: tl.mobile,
-      address: tl.address,
-      designation: tl.designation,
-      status: tl.status,
-      managerId: tl.manager_id,
-      employeeCount: (await store.listEmployees({ teamLeaderId: tl.id })).length,
-    }))
-  );
+  const counts = await store.getEmployeeCountsByTeamLeader();
+  const withCounts = teamLeaders.map((tl) => ({
+    id: tl.id,
+    employeeId: tl.employee_id,
+    name: tl.name_en,
+    zone: tl.zone,
+    mobile: tl.mobile,
+    address: tl.address,
+    designation: tl.designation,
+    status: tl.status,
+    managerId: tl.manager_id,
+    employeeCount: counts.get(tl.id) || 0,
+  }));
   return ok(res, { teamLeaders: withCounts });
 });
 
