@@ -91,6 +91,12 @@ async function createUser({
   return data;
 }
 
+async function deleteUser(id) {
+  const { error } = await supabase.from("users").delete().eq("id", id);
+  throwIfError(error, "deleteUser");
+  return true;
+}
+
 async function updateUser(id, patch) {
   const { data, error } = await supabase
     .from("users")
@@ -360,6 +366,7 @@ module.exports = {
   findUserById,
   createUser,
   updateUser,
+  deleteUser,
   listAllUsers,
   listEmployees,
   listTeamLeaderIdsForManager,

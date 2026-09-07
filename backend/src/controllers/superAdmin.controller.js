@@ -184,6 +184,35 @@ const updateUserHandler = asyncHandler(async (req, res, next) => {
   return ok(res, { user: await serializeUser(updated) });
 });
 
+const deleteUserHandler = asyncHandler(async (req, res, next) => {
+  const target = await store.findUserById(req.params.id);
+  if (!target) return next(fail(404, "NOT_FOUND", "User not found."));
+
+  // Same guard rails as deactivation: never let a Super Admin delete
+  // themselves, and never let the last Super Admin account be removed.
+  if (target.id === req.user.id) {
+    return next(fail(422, "CANNOT_DELETE_SELF", "You can't delete your own account."));
+  }
+  if (target.role === store.ROLES.SUPER_ADMIN) {
+    const superAdmins = await store.listAllUsers({ role: store.ROLES.SUPER_ADMIN });
+    const others = superAdmins.filter((u) => u.id !== target.id);
+    if (others.length === 0) {
+      return next(fail(422, "LAST_SUPER_ADMIN", "At least one other Super Admin account must remain."));
+    }
+  }
+
+  await store.deleteUser(target.id);
+
+  await store.addAuditLog({
+    actor: req.user,
+    action: "Super Admin deleted account",
+    target: { id: target.id, label: target.employee_id },
+    metadata: { role: target.role },
+  });
+
+  return ok(res, { deleted: true, id: target.id });
+});
+
 const updateAssignments = asyncHandler(async (req, res, next) => {
   const { userId, teamLeaderId, managerId } = req.body || {};
   const target = await store.findUserById(userId);
@@ -221,6 +250,9 @@ const listTeamLeaders = asyncHandler(async (req, res) => {
       employeeId: tl.employee_id,
       name: tl.name_en,
       zone: tl.zone,
+      mobile: tl.mobile,
+      address: tl.address,
+      designation: tl.designation,
       status: tl.status,
       managerId: tl.manager_id,
       employeeCount: (await store.listEmployees({ teamLeaderId: tl.id })).length,
@@ -236,6 +268,7 @@ module.exports = {
   listUsers,
   createUser,
   updateUser: updateUserHandler,
+  deleteUser: deleteUserHandler,
   updateAssignments,
   listTeamLeaders,
 };

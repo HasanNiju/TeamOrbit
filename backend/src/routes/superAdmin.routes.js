@@ -13,6 +13,7 @@ router.get("/export", controller.exportAllSubmissions);
 router.get("/users", controller.listUsers);
 router.post("/users", controller.createUser);
 router.patch("/users/:id", controller.updateUser);
+router.delete("/users/:id", controller.deleteUser);
 
 router.post("/admins", (req, res, next) => {
   req.body.role = "ADMIN";

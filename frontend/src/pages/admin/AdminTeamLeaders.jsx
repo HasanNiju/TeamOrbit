@@ -7,6 +7,7 @@ import Toast from "../../components/Toast";
 
 const emptyTlForm = { employeeId: "", name: "", mobile: "", zone: "", password: "" };
 const emptySaForm = { employeeId: "", name: "", mobile: "", password: "" };
+const emptyEditForm = { name: "", mobile: "", zone: "", address: "", designation: "" };
 
 export default function AdminTeamLeaders() {
   const [teamLeaders, setTeamLeaders] = useState([]);
@@ -25,6 +26,13 @@ export default function AdminTeamLeaders() {
   const [saForm, setSaForm] = useState(emptySaForm);
   const [saFormError, setSaFormError] = useState(null);
   const [saSaving, setSaSaving] = useState(false);
+
+  const [editingInfo, setEditingInfo] = useState(null); // user whose profile is being edited (TL or SA)
+  const [editForm, setEditForm] = useState(emptyEditForm);
+  const [editFormError, setEditFormError] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const [deletingId, setDeletingId] = useState(null);
 
   const [toast, setToast] = useState(null);
 
@@ -107,6 +115,57 @@ export default function AdminTeamLeaders() {
     loadSuperAdmins();
   }
 
+  function startEditInfo(user) {
+    setEditFormError(null);
+    setEditForm({
+      name: user.name || "",
+      mobile: user.mobile || "",
+      zone: user.zone || "",
+      address: user.address || "",
+      designation: user.designation || "",
+    });
+    setEditingInfo(user);
+  }
+
+  async function handleSaveInfo(e) {
+    e.preventDefault();
+    setEditFormError(null);
+    if (!editForm.name?.trim()) {
+      setEditFormError("Name is required.");
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await adminApi.updateUser(editingInfo.id, editForm);
+      const wasSuperAdmin = editingInfo.role === "SUPER_ADMIN";
+      setEditingInfo(null);
+      setToast("Profile updated.");
+      if (wasSuperAdmin) loadSuperAdmins();
+      else load();
+    } catch (err) {
+      setEditFormError(err.message);
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  async function handleDelete(user, isSuperAdmin) {
+    const confirmed = window.confirm(`Delete ${user.name} (${user.employeeId})? This permanently removes the account. This can't be undone.`);
+    if (!confirmed) return;
+    setDeletingId(user.id);
+    try {
+      await adminApi.deleteUser(user.id);
+      setToast("Account deleted.");
+      if (isSuperAdmin) loadSuperAdmins();
+      else load();
+    } catch (err) {
+      if (isSuperAdmin) setSaError(err.message);
+      else setError(err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div>
       <div className="admin-page-header">
@@ -145,9 +204,20 @@ export default function AdminTeamLeaders() {
                     {tl.status}
                   </span>
                 </td>
-                <td>
-                  <button type="button" className="admin-btn admin-btn--ghost" onClick={() => toggleStatus(tl)}>
+                <td style={{ whiteSpace: "nowrap" }}>
+                  <button type="button" className="admin-btn admin-btn--ghost" style={{ marginRight: 6 }} onClick={() => startEditInfo({ ...tl, role: "ADMIN" })}>
+                    Edit
+                  </button>
+                  <button type="button" className="admin-btn admin-btn--ghost" style={{ marginRight: 6 }} onClick={() => toggleStatus(tl)}>
                     {tl.status === "active" ? "Deactivate" : "Activate"}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn--ghost"
+                    onClick={() => handleDelete(tl, false)}
+                    disabled={deletingId === tl.id}
+                  >
+                    {deletingId === tl.id ? "Deleting…" : "Delete"}
                   </button>
                 </td>
               </tr>
@@ -192,9 +262,20 @@ export default function AdminTeamLeaders() {
                     {sa.status}
                   </span>
                 </td>
-                <td>
-                  <button type="button" className="admin-btn admin-btn--ghost" onClick={() => toggleSuperAdminStatus(sa)}>
+                <td style={{ whiteSpace: "nowrap" }}>
+                  <button type="button" className="admin-btn admin-btn--ghost" style={{ marginRight: 6 }} onClick={() => startEditInfo({ ...sa, role: "SUPER_ADMIN" })}>
+                    Edit
+                  </button>
+                  <button type="button" className="admin-btn admin-btn--ghost" style={{ marginRight: 6 }} onClick={() => toggleSuperAdminStatus(sa)}>
                     {sa.status === "active" ? "Deactivate" : "Activate"}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn--ghost"
+                    onClick={() => handleDelete(sa, true)}
+                    disabled={deletingId === sa.id}
+                  >
+                    {deletingId === sa.id ? "Deleting…" : "Delete"}
                   </button>
                 </td>
               </tr>
@@ -231,6 +312,22 @@ export default function AdminTeamLeaders() {
             {saFormError && <div className="banner banner--error" style={{ marginBottom: 14 }}>{saFormError}</div>}
             <Button type="submit" loading={saSaving}>
               {saSaving ? "Adding…" : "Add manager"}
+            </Button>
+          </form>
+        </AdminModal>
+      )}
+
+      {editingInfo && (
+        <AdminModal title={`Edit ${editingInfo.name}`} onClose={() => setEditingInfo(null)}>
+          <form onSubmit={handleSaveInfo}>
+            <Field id="tl-edit-name" label="Name" value={editForm.name} onChange={(v) => setEditForm((f) => ({ ...f, name: v }))} placeholder="Full name" />
+            <Field id="tl-edit-mobile" label="Mobile" value={editForm.mobile} onChange={(v) => setEditForm((f) => ({ ...f, mobile: v }))} placeholder="017XXXXXXXX" />
+            <Field id="tl-edit-zone" label="Zone" value={editForm.zone} onChange={(v) => setEditForm((f) => ({ ...f, zone: v }))} placeholder="Dhaka North" />
+            <Field id="tl-edit-address" label="Address" value={editForm.address} onChange={(v) => setEditForm((f) => ({ ...f, address: v }))} placeholder="Address" multiline />
+            <Field id="tl-edit-designation" label="Designation" value={editForm.designation} onChange={(v) => setEditForm((f) => ({ ...f, designation: v }))} placeholder="Designation" />
+            {editFormError && <div className="banner banner--error" style={{ marginBottom: 14 }}>{editFormError}</div>}
+            <Button type="submit" loading={savingEdit}>
+              {savingEdit ? "Saving…" : "Save changes"}
             </Button>
           </form>
         </AdminModal>

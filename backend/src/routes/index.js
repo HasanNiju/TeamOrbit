@@ -17,9 +17,22 @@ router.use(apiLimiter);
 router.get("/health", (req, res) => res.json({ success: true, data: { status: "ok", time: new Date().toISOString() } }));
 
 router.use("/auth", authRoutes);
-router.use("/", employeeRoutes); // /api/me, /api/submissions, ...
+
+// IMPORTANT: these must be registered BEFORE employeeRoutes below.
+// employeeRoutes is mounted at "/" (it owns flat paths like /me and
+// /submissions), and it gates EVERY request that reaches it with
+// `router.use(requireAuth, requireRole("MARKETING_OFFICER"))`. Because that
+// gate calls next(err) on failure, Express jumps straight to the error
+// handler and never tries the next router — so if employeeRoutes were
+// registered first, a Team Leader/Manager hitting /api/admin/*,
+// /api/super-admin/*, or /api/account would get bounced with "You do not
+// have permission to perform this action" before ever reaching those
+// routers, no matter what role they actually have. Mounting the
+// role-specific routers first lets each request match its own router
+// (and its own role check) before it can fall through to employeeRoutes.
 router.use("/admin", adminRoutes);
 router.use("/super-admin", superAdminRoutes);
 router.use("/account", accountRoutes);
+router.use("/", employeeRoutes); // /api/me, /api/submissions, ...
 
 module.exports = router;

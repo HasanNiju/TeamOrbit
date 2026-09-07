@@ -34,6 +34,7 @@ async function serializeEmployeeListItem(user) {
     employeeId: user.employee_id,
     name: user.name_en,
     zone: user.zone,
+    address: user.address,
     role: user.role,
     designation: user.designation,
     mobile: user.mobile,

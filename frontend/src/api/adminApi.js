@@ -150,6 +150,10 @@ export async function updateUser(id, patch) {
   return request(`/super-admin/users/${encodeURIComponent(id)}`, { method: "PATCH", body: patch });
 }
 
+export async function deleteUser(id) {
+  return request(`/super-admin/users/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
 export async function updateAssignments(payload) {
   return request("/super-admin/assignments", { method: "PATCH", body: payload });
 }

@@ -5,6 +5,7 @@ import Field from "../../components/Field";
 import Button from "../../components/Button";
 
 const emptyForm = { employeeId: "", name: "", mobile: "", zone: "", address: "", password: "", teamLeaderId: "" };
+const emptyEditForm = { name: "", mobile: "", zone: "", address: "", designation: "" };
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -17,7 +18,14 @@ export default function AdminUsers() {
   const [formError, setFormError] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const [editing, setEditing] = useState(null); // user being reassigned/status-changed
+  const [editing, setEditing] = useState(null); // user being reassigned
+
+  const [editingInfo, setEditingInfo] = useState(null); // user whose profile is being edited
+  const [editForm, setEditForm] = useState(emptyEditForm);
+  const [editFormError, setEditFormError] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const [deletingId, setDeletingId] = useState(null);
 
   function load() {
     setLoading(true);
@@ -64,6 +72,53 @@ export default function AdminUsers() {
     load();
   }
 
+  function startEditInfo(user) {
+    setEditFormError(null);
+    setEditForm({
+      name: user.name || "",
+      mobile: user.mobile || "",
+      zone: user.zone || "",
+      address: user.address || "",
+      designation: user.designation || "",
+    });
+    setEditingInfo(user);
+  }
+
+  async function handleSaveInfo(e) {
+    e.preventDefault();
+    setEditFormError(null);
+    if (!editForm.name?.trim()) {
+      setEditFormError("Name is required.");
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await adminApi.updateUser(editingInfo.id, editForm);
+      setEditingInfo(null);
+      load();
+    } catch (err) {
+      setEditFormError(err.message);
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  async function handleDelete(user) {
+    const confirmed = window.confirm(
+      `Delete ${user.name} (${user.employeeId})? This permanently removes the account and all of their submissions. This can't be undone.`
+    );
+    if (!confirmed) return;
+    setDeletingId(user.id);
+    try {
+      await adminApi.deleteUser(user.id);
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div>
       <div className="admin-page-header">
@@ -103,11 +158,22 @@ export default function AdminUsers() {
                   </span>
                 </td>
                 <td style={{ whiteSpace: "nowrap" }}>
+                  <button type="button" className="admin-btn admin-btn--ghost" style={{ marginRight: 6 }} onClick={() => startEditInfo(u)}>
+                    Edit
+                  </button>
                   <button type="button" className="admin-btn admin-btn--ghost" style={{ marginRight: 6 }} onClick={() => setEditing(u)}>
                     Reassign
                   </button>
-                  <button type="button" className="admin-btn admin-btn--ghost" onClick={() => toggleStatus(u)}>
+                  <button type="button" className="admin-btn admin-btn--ghost" style={{ marginRight: 6 }} onClick={() => toggleStatus(u)}>
                     {u.status === "active" ? "Deactivate" : "Activate"}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn--ghost"
+                    onClick={() => handleDelete(u)}
+                    disabled={deletingId === u.id}
+                  >
+                    {deletingId === u.id ? "Deleting…" : "Delete"}
                   </button>
                 </td>
               </tr>
@@ -146,6 +212,22 @@ export default function AdminUsers() {
             {formError && <div className="banner banner--error" style={{ marginBottom: 14 }}>{formError}</div>}
             <Button type="submit" loading={saving}>
               {saving ? "Adding…" : "Add employee"}
+            </Button>
+          </form>
+        </AdminModal>
+      )}
+
+      {editingInfo && (
+        <AdminModal title={`Edit ${editingInfo.name}`} onClose={() => setEditingInfo(null)}>
+          <form onSubmit={handleSaveInfo}>
+            <Field id="edit-name" label="Name" value={editForm.name} onChange={(v) => setEditForm((f) => ({ ...f, name: v }))} placeholder="Full name" />
+            <Field id="edit-mobile" label="Mobile" value={editForm.mobile} onChange={(v) => setEditForm((f) => ({ ...f, mobile: v }))} placeholder="017XXXXXXXX" />
+            <Field id="edit-zone" label="Zone" value={editForm.zone} onChange={(v) => setEditForm((f) => ({ ...f, zone: v }))} placeholder="Dhaka North" />
+            <Field id="edit-address" label="Address" value={editForm.address} onChange={(v) => setEditForm((f) => ({ ...f, address: v }))} placeholder="Address" multiline />
+            <Field id="edit-designation" label="Designation" value={editForm.designation} onChange={(v) => setEditForm((f) => ({ ...f, designation: v }))} placeholder="Designation" />
+            {editFormError && <div className="banner banner--error" style={{ marginBottom: 14 }}>{editFormError}</div>}
+            <Button type="submit" loading={savingEdit}>
+              {savingEdit ? "Saving…" : "Save changes"}
             </Button>
           </form>
         </AdminModal>
