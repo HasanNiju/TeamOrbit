@@ -3,8 +3,10 @@ import * as adminApi from "../../api/adminApi";
 import AdminModal from "./AdminModal";
 import Field from "../../components/Field";
 import Button from "../../components/Button";
+import Toast from "../../components/Toast";
 
-const emptyForm = { employeeId: "", name: "", mobile: "", zone: "", password: "" };
+const emptyTlForm = { employeeId: "", name: "", mobile: "", zone: "", password: "" };
+const emptySaForm = { employeeId: "", name: "", mobile: "", password: "" };
 
 export default function AdminTeamLeaders() {
   const [teamLeaders, setTeamLeaders] = useState([]);
@@ -12,9 +14,19 @@ export default function AdminTeamLeaders() {
   const [error, setError] = useState(null);
 
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(emptyTlForm);
   const [formError, setFormError] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  const [superAdmins, setSuperAdmins] = useState([]);
+  const [saLoading, setSaLoading] = useState(true);
+  const [saError, setSaError] = useState(null);
+  const [showAddSa, setShowAddSa] = useState(false);
+  const [saForm, setSaForm] = useState(emptySaForm);
+  const [saFormError, setSaFormError] = useState(null);
+  const [saSaving, setSaSaving] = useState(false);
+
+  const [toast, setToast] = useState(null);
 
   function load() {
     setLoading(true);
@@ -25,7 +37,17 @@ export default function AdminTeamLeaders() {
       .finally(() => setLoading(false));
   }
 
+  function loadSuperAdmins() {
+    setSaLoading(true);
+    adminApi
+      .listSuperAdmins()
+      .then((d) => setSuperAdmins(d.users || []))
+      .catch((err) => setSaError(err.message))
+      .finally(() => setSaLoading(false));
+  }
+
   useEffect(load, []);
+  useEffect(loadSuperAdmins, []);
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -38,7 +60,8 @@ export default function AdminTeamLeaders() {
     try {
       await adminApi.createUser({ ...form, role: "ADMIN" });
       setShowAdd(false);
-      setForm(emptyForm);
+      setForm(emptyTlForm);
+      setToast("Team leader added.");
       load();
     } catch (err) {
       setFormError(err.message);
@@ -51,6 +74,37 @@ export default function AdminTeamLeaders() {
     const nextStatus = tl.status === "active" ? "inactive" : "active";
     await adminApi.updateUser(tl.id, { status: nextStatus });
     load();
+  }
+
+  async function handleAddSuperAdmin(e) {
+    e.preventDefault();
+    setSaFormError(null);
+    if (!saForm.employeeId || !saForm.name || !saForm.password) {
+      setSaFormError("Employee ID, name, and password are required.");
+      return;
+    }
+    if (saForm.password.length < 6) {
+      setSaFormError("Password must be at least 6 characters.");
+      return;
+    }
+    setSaSaving(true);
+    try {
+      await adminApi.createSuperAdmin(saForm);
+      setShowAddSa(false);
+      setSaForm(emptySaForm);
+      setToast("Super Admin account created.");
+      loadSuperAdmins();
+    } catch (err) {
+      setSaFormError(err.message);
+    } finally {
+      setSaSaving(false);
+    }
+  }
+
+  async function toggleSuperAdminStatus(sa) {
+    const nextStatus = sa.status === "active" ? "inactive" : "active";
+    await adminApi.updateUser(sa.id, { status: nextStatus });
+    loadSuperAdmins();
   }
 
   return (
@@ -104,6 +158,53 @@ export default function AdminTeamLeaders() {
         {loading && <div className="admin-empty">Loading…</div>}
       </div>
 
+      <div className="admin-page-header" style={{ marginTop: 32 }}>
+        <div>
+          <h1 className="admin-page-header__title">Managers (Super Admins)</h1>
+          <p className="admin-page-header__subtitle">Full organization access. Only another Manager can create one.</p>
+        </div>
+        <button type="button" className="admin-btn admin-btn--primary" onClick={() => setShowAddSa(true)}>
+          + Add manager
+        </button>
+      </div>
+
+      {saError && <div className="banner banner--error" style={{ marginBottom: 16 }}>{saError}</div>}
+
+      <div className="admin-table-wrap">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Employee ID</th>
+              <th>Mobile</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {superAdmins.map((sa) => (
+              <tr key={sa.id}>
+                <td>{sa.name}</td>
+                <td>{sa.employeeId}</td>
+                <td>{sa.mobile || "—"}</td>
+                <td>
+                  <span className={`admin-badge ${sa.status === "active" ? "admin-badge--active" : "admin-badge--inactive"}`}>
+                    {sa.status}
+                  </span>
+                </td>
+                <td>
+                  <button type="button" className="admin-btn admin-btn--ghost" onClick={() => toggleSuperAdminStatus(sa)}>
+                    {sa.status === "active" ? "Deactivate" : "Activate"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!saLoading && superAdmins.length === 0 && <div className="admin-empty">No Managers yet.</div>}
+        {saLoading && <div className="admin-empty">Loading…</div>}
+      </div>
+
       {showAdd && (
         <AdminModal title="Add team leader" onClose={() => setShowAdd(false)}>
           <form onSubmit={handleAdd}>
@@ -119,6 +220,23 @@ export default function AdminTeamLeaders() {
           </form>
         </AdminModal>
       )}
+
+      {showAddSa && (
+        <AdminModal title="Add manager (Super Admin)" onClose={() => setShowAddSa(false)}>
+          <form onSubmit={handleAddSuperAdmin}>
+            <Field id="sa-emp-id" label="Employee ID" value={saForm.employeeId} onChange={(v) => setSaForm((f) => ({ ...f, employeeId: v }))} placeholder="SA-003" />
+            <Field id="sa-name" label="Full name" value={saForm.name} onChange={(v) => setSaForm((f) => ({ ...f, name: v }))} placeholder="Manager name" />
+            <Field id="sa-mobile" label="Mobile" value={saForm.mobile} onChange={(v) => setSaForm((f) => ({ ...f, mobile: v }))} placeholder="017XXXXXXXX" />
+            <Field id="sa-password" label="Temporary password" type="password" value={saForm.password} onChange={(v) => setSaForm((f) => ({ ...f, password: v }))} placeholder="At least 6 characters" />
+            {saFormError && <div className="banner banner--error" style={{ marginBottom: 14 }}>{saFormError}</div>}
+            <Button type="submit" loading={saSaving}>
+              {saSaving ? "Adding…" : "Add manager"}
+            </Button>
+          </form>
+        </AdminModal>
+      )}
+
+      <Toast message={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

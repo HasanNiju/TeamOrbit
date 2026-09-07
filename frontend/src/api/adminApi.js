@@ -158,6 +158,16 @@ export async function listTeamLeaders() {
   return request("/super-admin/team-leaders");
 }
 
+// --- Super Admins (Manager scope: only another Super Admin can create one) --------------------------------------------------------------
+
+export async function listSuperAdmins() {
+  return request(`/super-admin/users${toQueryString({ role: "SUPER_ADMIN" })}`);
+}
+
+export async function createSuperAdmin(payload) {
+  return request("/super-admin/super-admins", { method: "POST", body: payload });
+}
+
 // --- Account (self) --------------------------------------------------------------
 
 export async function getAccount() {
@@ -166,6 +176,12 @@ export async function getAccount() {
 
 export async function updateAccount(patch) {
   return request("/account", { method: "PATCH", body: patch });
+}
+
+export async function uploadAccountPhoto(file) {
+  const form = new FormData();
+  form.append("photo", file);
+  return request("/account/photo", { method: "POST", body: form, isForm: true });
 }
 
 export async function changePassword(currentPassword, newPassword) {

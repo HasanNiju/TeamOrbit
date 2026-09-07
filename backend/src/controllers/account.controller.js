@@ -22,6 +22,15 @@ const updateAccount = asyncHandler(async (req, res) => {
   return ok(res, { user: await serializeUser(updated) });
 });
 
+const uploadPhoto = asyncHandler(async (req, res, next) => {
+  if (!req.file) return next(fail(400, "MISSING_FILE", "No photo uploaded."));
+  // No durable filesystem in a serverless function — store the photo as a
+  // base64 data URI directly on the user row instead of writing to disk.
+  const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+  const updated = await store.updateUser(req.user.id, { profile_photo_url: dataUri });
+  return ok(res, { user: await serializeUser(updated) });
+});
+
 const changePassword = asyncHandler(async (req, res, next) => {
   const { currentPassword, newPassword } = req.body || {};
   if (!currentPassword || !newPassword) return next(fail(400, "MISSING_FIELDS", "Current and new password are required."));
@@ -34,4 +43,4 @@ const changePassword = asyncHandler(async (req, res, next) => {
   return ok(res, { changed: true });
 });
 
-module.exports = { getAccount, updateAccount, changePassword };
+module.exports = { getAccount, updateAccount, uploadPhoto, changePassword };

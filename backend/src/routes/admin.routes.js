@@ -4,8 +4,11 @@ const { requireAuth, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
 
-// Team Leaders only — Super Admins use the broader /api/super-admin/* routes.
-router.use(requireAuth, requireRole("ADMIN"));
+// Team Leaders use these routes normally. Super Admins are also allowed
+// through here as a defensive superset — a Manager should never be hard
+// blocked by the narrower Team-Leader scoping; they primarily use the
+// broader /api/super-admin/* routes, but this avoids a 403 dead-end.
+router.use(requireAuth, requireRole("ADMIN", "SUPER_ADMIN"));
 
 router.get("/dashboard", controller.getDashboard);
 router.get("/submissions", controller.listSubmissions);

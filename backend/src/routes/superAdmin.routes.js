@@ -19,6 +19,11 @@ router.post("/admins", (req, res, next) => {
   next();
 }, controller.createUser);
 
+router.post("/super-admins", (req, res, next) => {
+  req.body.role = "SUPER_ADMIN";
+  next();
+}, controller.createUser);
+
 router.get("/team-leaders", controller.listTeamLeaders);
 router.patch("/assignments", controller.updateAssignments);
 

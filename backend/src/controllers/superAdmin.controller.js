@@ -97,8 +97,8 @@ const createUser = asyncHandler(async (req, res, next) => {
   if (!isNonEmptyString(name)) problems.push("Name is required.");
   if (mobile && !isValidBdMobile(mobile)) problems.push("Enter a valid Bangladeshi mobile number.");
   if (!isNonEmptyString(password) || password.length < 6) problems.push("A password of at least 6 characters is required.");
-  if (!["MARKETING_OFFICER", "ADMIN"].includes(role)) {
-    problems.push("Role must be MARKETING_OFFICER or ADMIN.");
+  if (!["MARKETING_OFFICER", "ADMIN", "SUPER_ADMIN"].includes(role)) {
+    problems.push("Role must be MARKETING_OFFICER, ADMIN, or SUPER_ADMIN.");
   }
   if (problems.length) return next(fail(422, "VALIDATION_ERROR", problems.join(" ")));
 
@@ -117,6 +117,9 @@ const createUser = asyncHandler(async (req, res, next) => {
     }
   } else if (role === "ADMIN") {
     resolvedManagerId = managerId || req.user.id;
+  } else if (role === "SUPER_ADMIN") {
+    // Super Admins don't report to a Team Leader or another Manager.
+    resolvedManagerId = null;
   }
 
   const user = await store.createUser({
@@ -125,7 +128,7 @@ const createUser = asyncHandler(async (req, res, next) => {
     nameEn: name,
     password,
     role,
-    designation: designation || (role === "ADMIN" ? "Team Leader" : "Marketing Officer"),
+    designation: designation || (role === "ADMIN" ? "Team Leader" : role === "SUPER_ADMIN" ? "Super Admin" : "Marketing Officer"),
     mobile,
     zone,
     address,
@@ -137,7 +140,7 @@ const createUser = asyncHandler(async (req, res, next) => {
 
   await store.addAuditLog({
     actor: req.user,
-    action: role === "ADMIN" ? "Super Admin created Admin" : "Super Admin created employee",
+    action: role === "SUPER_ADMIN" ? "Super Admin created another Super Admin" : role === "ADMIN" ? "Super Admin created Admin" : "Super Admin created employee",
     target: { id: user.id, label: user.employee_id },
   });
 
@@ -152,6 +155,19 @@ const updateUserHandler = asyncHandler(async (req, res, next) => {
   const allowed = ["name", "mobile", "address", "zone", "status", "designation"];
   for (const key of allowed) if (key in (req.body || {})) patch[key] = req.body[key];
   if (patch.name) patch.name_en = req.body.name;
+
+  // Guard rails: never let a Super Admin lock themselves out, and never
+  // let the last active Super Admin account be deactivated.
+  if (target.role === store.ROLES.SUPER_ADMIN && patch.status === "inactive") {
+    if (target.id === req.user.id) {
+      return next(fail(422, "CANNOT_DEACTIVATE_SELF", "You can't deactivate your own account."));
+    }
+    const superAdmins = await store.listAllUsers({ role: store.ROLES.SUPER_ADMIN });
+    const otherActive = superAdmins.filter((u) => u.id !== target.id && u.status === "active");
+    if (otherActive.length === 0) {
+      return next(fail(422, "LAST_SUPER_ADMIN", "At least one active Super Admin account must remain."));
+    }
+  }
 
   const before = { status: target.status };
   const updated = await store.updateUser(target.id, patch);
